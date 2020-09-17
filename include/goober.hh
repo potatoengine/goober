@@ -6,78 +6,123 @@
 #define GOOBER_HH_
 #pragma once
 
-#include "goober.h"
+#include <cstdint>
 
-namespace goober {
-    struct Vec2 {
-        Vec2() = default;
-        constexpr Vec2(float xi, float yi) noexcept : x(xi), y(yi) {}
-        constexpr Vec2(grVec2 r) noexcept : x(r.x), y(r.y) {}
-        constexpr operator grVec2() const noexcept { return {x, y}; }
+#define GOOBER_API
 
-        constexpr friend Vec2 operator+(Vec2 l, Vec2 r) noexcept { return {l.x + r.x, l.y + r.y}; }
-        constexpr friend Vec2 operator-(Vec2 l, Vec2 r) noexcept { return {l.x - r.x, l.y - r.y}; }
+inline namespace goober {
+    // ------------------------------------------------------
+    //  * public types *
+    // ------------------------------------------------------
+    struct grVec2 {
+        grVec2() = default;
+        constexpr grVec2(float xi, float yi) noexcept : x(xi), y(yi) {}
 
-        constexpr friend bool operator==(Vec2 l, Vec2 r) noexcept {
-            return l.x == r.x && l.y == r.y;
-        }
-        constexpr friend bool operator!=(Vec2 l, Vec2 r) noexcept {
-            return l.x != r.x || l.y != r.y;
-        }
+        constexpr friend grVec2 operator+(grVec2 l, grVec2 r) noexcept;
+        constexpr friend grVec2 operator-(grVec2 l, grVec2 r) noexcept;
+
+        constexpr friend bool operator==(grVec2 l, grVec2 r) noexcept;
+        constexpr friend bool operator!=(grVec2 l, grVec2 r) noexcept;
 
         float x = 0.f;
         float y = 0.f;
     };
 
-    enum class MouseButton { None, Left = (1 << 0), Right = (1 << 1), Middle = (1 << 2) };
-    constexpr MouseButton operator|(MouseButton l, MouseButton r);
-    constexpr MouseButton operator&(MouseButton l, MouseButton r);
-
-    class Context {
-    public:
-        Context() = default;
-        ~Context() { grDeleteContext(_context); }
-
-        inline static Context create();
-
-        inline Context(Context&& rhs) noexcept;
-        inline Context& operator=(Context&& rhs);
-
-        inline grContext* get() const noexcept { return _context; }
-
-    private:
-        grContext* _context = nullptr;
+    enum class grStatus : uint16_t {
+        Ok,
+        NullArgument,
+        AbiMismatch,
     };
 
-    // --- implementation ---
+    enum class grMod : uint16_t {
+        None,
+        LeftShift = (1 << 0),
+        RightShift = (1 << 1),
+        Shift = LeftShift | RightShift,
+        LeftAlt = (1 << 2),
+        RightAlt = (1 << 3),
+        Alt = LeftAlt | RightAlt,
+        LeftCtrl = (1 << 4),
+        RightCtrl = (1 << 5),
+        Ctrl = LeftCtrl | RightCtrl,
+    };
+    constexpr grMod operator|(grMod l, grMod r);
+    constexpr grMod operator&(grMod l, grMod r);
 
-    constexpr MouseButton operator|(MouseButton l, MouseButton r) {
-        return static_cast<MouseButton>(static_cast<unsigned>(l) | static_cast<unsigned>(r));
+    enum class grMouseButton : uint16_t {
+        None,
+        Left = (1 << 0),
+        Right = (1 << 1),
+        Middle = (1 << 2)
+    };
+    constexpr grMouseButton operator|(grMouseButton l, grMouseButton r);
+    constexpr grMouseButton operator&(grMouseButton l, grMouseButton r);
+
+    struct grContext {
+        grVec2 mousePosLast;
+        grVec2 mousePos;
+        grVec2 mousePosDelta;
+        grMod modifiers{};
+        grMouseButton mouseButtonsLast{};
+        grMouseButton mouseButtons{};
+        float deltaTime = 0.f;
+    };
+
+    // ------------------------------------------------------
+    //  * public functions *
+    // ------------------------------------------------------
+
+    GOOBER_API grStatus grInitialize(grContext& context, size_t contextSize = sizeof(grContext));
+
+    GOOBER_API grStatus grBeginFrame(grContext& context, float deltaTime);
+    GOOBER_API grStatus grEndFrame(grContext& context);
+
+    constexpr bool grIsMouseDown(grContext const& context, grMouseButton button);
+    constexpr bool grIsMousePressed(grContext const& context, grMouseButton button);
+    constexpr bool grIsMouseReleased(grContext const& context, grMouseButton button);
+
+    // ------------------------------------------------------
+    //  * implementation *
+    // ------------------------------------------------------
+
+    constexpr grVec2 operator+(grVec2 l, grVec2 r) noexcept { return {l.x + r.x, l.y + r.y}; }
+    constexpr grVec2 operator-(grVec2 l, grVec2 r) noexcept { return {l.x - r.x, l.y - r.y}; }
+
+    constexpr bool operator==(grVec2 l, grVec2 r) noexcept { return l.x == r.x && l.y == r.y; }
+    constexpr bool operator!=(grVec2 l, grVec2 r) noexcept { return l.x != r.x || l.y != r.y; }
+
+    constexpr grMod operator|(grMod l, grMod r) {
+        return static_cast<grMod>(static_cast<uint16_t>(l) | static_cast<uint16_t>(r));
     }
-    constexpr MouseButton operator&(MouseButton l, MouseButton r) {
-        return static_cast<MouseButton>(static_cast<unsigned>(l) & static_cast<unsigned>(r));
+    constexpr grMod operator&(grMod l, grMod r) {
+        return static_cast<grMod>(static_cast<uint16_t>(l) & static_cast<uint16_t>(r));
     }
 
-    Context Context::create() {
-        Context ctx;
-        // FIXME: handle errors (no, not exceptions)
-        (void)grCreateContext(&ctx._context);
-        return ctx;
+    constexpr grMouseButton operator|(grMouseButton l, grMouseButton r) {
+        return static_cast<grMouseButton>(static_cast<uint16_t>(l) | static_cast<uint16_t>(r));
+    }
+    constexpr grMouseButton operator&(grMouseButton l, grMouseButton r) {
+        return static_cast<grMouseButton>(static_cast<uint16_t>(l) & static_cast<uint16_t>(r));
     }
 
-    Context::Context(Context&& rhs) noexcept {
-        _context = rhs._context;
-        rhs._context = nullptr;
+    constexpr bool grIsMouseDown(grContext const& context, grMouseButton button) {
+        return (context.mouseButtons & button) != grMouseButton{};
     }
 
-    Context& Context::operator=(Context&& rhs) {
-        if (this != &rhs) {
-            grDeleteContext(_context);
-            _context = rhs._context;
-            rhs._context = nullptr;
-        }
-        return *this;
+    constexpr bool grIsMousePressed(grContext const& context, grMouseButton button) {
+        bool const isDown = (context.mouseButtons & button) != grMouseButton{};
+        bool const wasDown = (context.mouseButtonsLast & button) != grMouseButton{};
+
+        return isDown && !wasDown;
     }
+
+    constexpr bool grIsMouseReleased(grContext const& context, grMouseButton button) {
+        bool const isDown = (context.mouseButtons & button) != grMouseButton{};
+        bool const wasDown = (context.mouseButtonsLast & button) != grMouseButton{};
+
+        return !isDown && wasDown;
+    }
+
 } // namespace goober
 
 #endif // defined(GOOBER_HH_)

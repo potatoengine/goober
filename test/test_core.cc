@@ -6,58 +6,87 @@
 #include "goober.hh"
 
 TEST_CASE("core initialization", "[core]") {
-    auto ctx = goober::Context::create();
+    grContext ctx;
+    CHECK(grInitialize(ctx) == grStatus::Ok);
 }
 
 TEST_CASE("mouse input", "[core][mouse]") {
-    using namespace goober;
-
-    auto ctx = Context::create();
-
     SECTION("position") {
-        grContextSetMouseState(ctx.get(), {10, 10}, grMouseButton_None, 0.f);
-        grContextSetMouseState(ctx.get(), {30, 30}, grMouseButton_Left, 0.f);
+        grContext ctx;
+        grInitialize(ctx);
 
-        CHECK(grGetMousePosition(ctx.get()) == Vec2{30, 30});
-        CHECK(grGetMouseDelta(ctx.get()) == Vec2{20, 20});
+        ctx.mousePos = {10, 10};
+        grBeginFrame(ctx, 0.f);
+        grEndFrame(ctx);
+
+        ctx.mousePos = {30, 30};
+        grBeginFrame(ctx, 0.f);
+
+        CHECK(ctx.mousePos == grVec2{30, 30});
+        CHECK(ctx.mousePosDelta == grVec2{20, 20});
     }
 
     SECTION("button down") {
-        grContextSetMouseState(ctx.get(), {}, grMouseButton_None, 0.f);
-        grContextSetMouseState(ctx.get(), {}, grMouseButton_Left, 0.f);
+        grContext ctx;
+        grInitialize(ctx);
 
-        CHECK(grIsMouseDown(ctx.get(), grMouseButton_Left));
-        CHECK_FALSE(grIsMouseDown(ctx.get(), grMouseButton_Right));
+        ctx.mouseButtons = grMouseButton::Left;
+        grBeginFrame(ctx, 0.f);
 
-        grContextSetMouseState(ctx.get(), {}, grMouseButton_Right, 0.f);
+        CHECK(grIsMouseDown(ctx, grMouseButton::Left));
+        CHECK_FALSE(grIsMouseDown(ctx, grMouseButton::Right));
 
-        CHECK_FALSE(grIsMouseDown(ctx.get(), grMouseButton_Left));
-        CHECK(grIsMouseDown(ctx.get(), grMouseButton_Right));
+        grEndFrame(ctx);
+
+        ctx.mouseButtons = grMouseButton::Right;
+        grBeginFrame(ctx, 0.f);
+
+        CHECK_FALSE(grIsMouseDown(ctx, grMouseButton::Left));
+        CHECK(grIsMouseDown(ctx, grMouseButton::Right));
     }
 
     SECTION("button pressed") {
-        grContextSetMouseState(ctx.get(), {}, grMouseButton_None, 0.f);
-        grContextSetMouseState(ctx.get(), {}, grMouseButton_Left, 0.f);
+        grContext ctx;
+        grInitialize(ctx);
 
-        CHECK(grIsMousePressed(ctx.get(), grMouseButton_Left));
-        CHECK_FALSE(grIsMousePressed(ctx.get(), grMouseButton_Right));
+        ctx.mouseButtons = grMouseButton::Left;
+        grBeginFrame(ctx, 0.f);
 
-        grContextSetMouseState(ctx.get(), {}, grMouseButton_Right, 0.f);
+        CHECK(grIsMousePressed(ctx, grMouseButton::Left));
+        CHECK_FALSE(grIsMousePressed(ctx, grMouseButton::Right));
 
-        CHECK_FALSE(grIsMousePressed(ctx.get(), grMouseButton_Left));
-        CHECK(grIsMousePressed(ctx.get(), grMouseButton_Right));
+        grEndFrame(ctx);
+
+        grBeginFrame(ctx, 0.f);
+
+        CHECK_FALSE(grIsMousePressed(ctx, grMouseButton::Left));
+        CHECK_FALSE(grIsMousePressed(ctx, grMouseButton::Right));
+
+        grEndFrame(ctx);
+
+        ctx.mouseButtons = grMouseButton::Right;
+        grBeginFrame(ctx, 0.f);
+
+        CHECK_FALSE(grIsMousePressed(ctx, grMouseButton::Left));
+        CHECK(grIsMousePressed(ctx, grMouseButton::Right));
     }
 
     SECTION("button released") {
-        grContextSetMouseState(ctx.get(), {}, grMouseButton_None, 0.f);
-        grContextSetMouseState(ctx.get(), {}, grMouseButton_Left, 0.f);
+        grContext ctx;
+        grInitialize(ctx);
 
-        CHECK_FALSE(grIsMouseReleased(ctx.get(), grMouseButton_Left));
-        CHECK_FALSE(grIsMouseReleased(ctx.get(), grMouseButton_Right));
+        ctx.mouseButtons = grMouseButton::Left;
+        grBeginFrame(ctx, 0.f);
 
-        grContextSetMouseState(ctx.get(), {}, grMouseButton_Right, 0.f);
+        CHECK_FALSE(grIsMouseReleased(ctx, grMouseButton::Left));
+        CHECK_FALSE(grIsMouseReleased(ctx, grMouseButton::Right));
 
-        CHECK(grIsMouseReleased(ctx.get(), grMouseButton_Left));
-        CHECK_FALSE(grIsMouseReleased(ctx.get(), grMouseButton_Right));
+        grEndFrame(ctx);
+
+        ctx.mouseButtons = grMouseButton::None;
+        grBeginFrame(ctx, 0.f);
+
+        CHECK(grIsMouseReleased(ctx, grMouseButton::Left));
+        CHECK_FALSE(grIsMouseReleased(ctx, grMouseButton::Right));
     }
 }

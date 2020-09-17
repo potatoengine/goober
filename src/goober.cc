@@ -2,84 +2,28 @@
 // This is free and unencumbered software released into the public domain.
 // See LICENSE.md for more details.
 
-#include "goober.h"
-#include "context.h"
+#include "goober.hh"
 
-grStatus grCreateContext(grContext** out_context) {
-    if (out_context == nullptr) {
-        return grStatus_BadArgument;
+inline namespace goober {
+
+    grStatus grInitialize(grContext& context, size_t contextSize) {
+        if (contextSize != sizeof(grContext))
+            return grStatus::AbiMismatch;
+
+        context = grContext{};
+        return grStatus::Ok;
     }
 
-    *out_context = new grContext;
-    return grStatus_OK;
-}
-
-void grDeleteContext(grContext* context) {
-    delete context;
-}
-
-GOOBER_API grStatus
-grContextSetMouseState(grContext* context, grVec2 pos, grMouseButton buttons, float wheel) {
-    if (context == nullptr) {
-        return grStatus_BadArgument;
+    grStatus grBeginFrame(grContext& context, float deltaTime) {
+        context.mousePosDelta = context.mousePos - context.mousePosLast;
+        context.deltaTime = deltaTime;
+        return grStatus::Ok;
     }
 
-    context->mousePosLast = context->mousePos;
-    context->mousePos = pos;
-
-    context->mouseButtonsLast = context->mouseButtons;
-    context->mouseButtons = static_cast<goober::MouseButton>(buttons);
-
-    return grStatus_OK;
-}
-
-GOOBER_API grVec2 grGetMousePosition(grContext const* context) {
-    if (context == nullptr) {
-        return {0, 0};
+    grStatus grEndFrame(grContext& context) {
+        context.mousePosLast = context.mousePos;
+        context.mouseButtonsLast = context.mouseButtons;
+        return grStatus::Ok;
     }
 
-    return context->mousePos;
-}
-
-GOOBER_API grVec2 grGetMouseDelta(grContext const* context) {
-    if (context == nullptr) {
-        return {0, 0};
-    }
-
-    return context->mousePos - context->mousePosLast;
-}
-
-GOOBER_API bool grIsMouseDown(grContext const* context, grMouseButton button) {
-    if (context == nullptr) {
-        return false;
-    }
-
-    return (context->mouseButtons & static_cast<goober::MouseButton>(button)) !=
-        goober::MouseButton{};
-}
-
-GOOBER_API bool grIsMousePressed(grContext const* context, grMouseButton button) {
-    if (context == nullptr) {
-        return false;
-    }
-
-    bool const isDown =
-        (context->mouseButtons & static_cast<goober::MouseButton>(button)) != goober::MouseButton{};
-    bool const wasDown = (context->mouseButtonsLast & static_cast<goober::MouseButton>(button)) !=
-        goober::MouseButton{};
-
-    return isDown && !wasDown;
-}
-
-GOOBER_API bool grIsMouseReleased(grContext const* context, grMouseButton button) {
-    if (context == nullptr) {
-        return false;
-    }
-
-    bool const isDown =
-        (context->mouseButtons & static_cast<goober::MouseButton>(button)) != goober::MouseButton{};
-    bool const wasDown = (context->mouseButtonsLast & static_cast<goober::MouseButton>(button)) !=
-        goober::MouseButton{};
-
-    return !isDown && wasDown;
-}
+} // namespace goober
