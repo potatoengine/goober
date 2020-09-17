@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(goober VERSION 0.1 LANGUAGES CXX C)
 
+enable_testing()
+
 add_library(goober_core)
 target_sources(goober_core PRIVATE
     include/goober.hh
