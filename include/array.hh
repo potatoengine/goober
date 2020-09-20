@@ -41,7 +41,7 @@ inline namespace goober {
         size_type capacity() const noexcept { return sentinel - first; }
 
         inline void resize(size_type newSize);
-        inline void reserve(size_type newCapacity) { _reserve(newCapacity); }
+        inline void reserve(size_type newCapacity);
 
         inline void shrink_to_fit();
 
@@ -53,7 +53,7 @@ inline namespace goober {
         friend iterator end(grArray& array) noexcept { return array.last; }
         friend const_iterator end(grArray const& array) noexcept { return array.last; }
 
-        inline grArray<T> _reserve(size_type newCapacity);
+        inline void _reallocate(size_type newCapacity);
     };
 
     // ------------------------------------------------------
@@ -98,11 +98,11 @@ inline namespace goober {
         size_type size = last - first;
         if (size < newSize) {
             if (capacity() < newSize)
-                _reserve(newSize);
+                reserve(newSize);
 
             pointer const newLast = first + newSize;
             if constexpr (!std::is_trivially_default_constructible_v<T>) {
-                while (last < newLast())
+                while (last < newLast)
                     new (last++) T{};
             }
             else
@@ -120,49 +120,49 @@ inline namespace goober {
     }
 
     template <typename T>
+    void grArray<T>::reserve(size_type newCapacity) {
+        if (sentinel - first >= newCapacity)
+            return;
+
+        _reallocate(newCapacity);
+    }
+
+    template <typename T>
     void grArray<T>::shrink_to_fit() {
         if (first == last) {
             allocator->free(first, (sentinel - first) * sizeof(T), allocator->userData);
             first = last = sentinel = nullptr;
         }
         else if (last != sentinel) {
-            size_type const size = last - first;
-            grArray<T> tmp = static_cast<grArray<T>&&>(*this);
-
-            if (size == 0)
-                return;
-
-            first = static_cast<T*>(allocator->alloc(size * sizeof(T), allocator->userData));
-            last = first;
-            sentinel = first + size;
-
-            if constexpr (!std::is_trivially_move_constructible_v<T>) {
-                for (pointer it = tmp.first; it != tmp.last; ++it, ++last)
-                    new (last) T(static_cast<T&&>(*it));
-            }
-            else {
-                last = first + size;
-                std::memcpy(first, tmp.first, size * sizeof(T));
-            }
+            _reallocate(last - first);
         }
     }
 
     template <typename T>
     auto grArray<T>::push_back(const_reference value) -> reference {
-        if (last == sentinel) {
-            auto const size = last - first;
-            auto constexpr minSize = 8;
-            auto tmp = _reserve(size < minSize ? minSize : /*1.5 * size*/ (size + (size >> 1)));
+        if (last != sentinel)
+            return *new (last++) T(value);
+
+        auto constexpr minCapacity = 8;
+        auto const size = last - first;
+        auto const newCapacity =
+            size < minCapacity ? minCapacity : /*1.5 * size*/ (size + (size >> 1));
+
+        if constexpr (std::is_nothrow_move_constructible_v<T>) {
+            _reallocate(newCapacity);
             return *new (last++) T(value);
         }
-        else
-            return *new (last++) T(value);
+        else {
+            auto tmp(value);
+            _reallocate(newCapacity);
+            return *new (last++) T(static_cast<reference&&>(tmp));
+        }
     }
 
     template <typename T>
-    grArray<T> grArray<T>::_reserve(size_type newCapacity) {
-        if (sentinel - first >= newCapacity)
-            return grArray<T>(*allocator);
+    void grArray<T>::_reallocate(size_type newCapacity) {
+        if (last - first >= newCapacity)
+            return;
 
         grArray<T> tmp = static_cast<grArray<T>&&>(*this);
 
@@ -176,12 +176,11 @@ inline namespace goober {
         }
         else {
             size_type size = tmp.last - tmp.first;
-            last = first + size;
-            if (size != 0)
+            if (size != 0) {
+                last = first + size;
                 std::memcpy(first, tmp.first, size * sizeof(T));
+            }
         }
-
-        return tmp;
     }
 
 } // namespace goober

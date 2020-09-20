@@ -5,6 +5,8 @@
 #include "array.hh"
 #include "catch.hpp"
 
+#include <string>
+
 TEST_CASE("grArray", "[array]") {
     grAllocator alloc;
 
@@ -22,6 +24,24 @@ TEST_CASE("grArray", "[array]") {
 
         for (int index = 0; index != iterations; ++index)
             REQUIRE(test.first[index] == index);
+    }
+
+    SECTION("push_back non-trivial") {
+        grArray<std::string> test(alloc);
+
+        std::string const input = "test";
+
+        int const iterations = 1000;
+
+        for (int index = 0; index != iterations; ++index) {
+            test.push_back(input);
+            REQUIRE(test.size() == index + 1);
+            REQUIRE(test.capacity() >= test.size());
+            REQUIRE(test.first[index] == input);
+        }
+
+        for (int index = 0; index != iterations; ++index)
+            REQUIRE(test.first[index] == input);
     }
 
     SECTION("resize") {
