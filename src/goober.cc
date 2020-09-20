@@ -11,6 +11,15 @@ inline namespace goober {
             return grStatus::AbiMismatch;
 
         context = grContext{};
+
+        // Apply default allocators
+        context.allocator.alloc = [](size_t sizeInBytes, void*) -> void* {
+            return malloc(sizeInBytes);
+        };
+        context.allocator.free = [](void* memory, size_t sizeInBytes, void*) {
+            free(memory);
+        };
+
         return grStatus::Ok;
     }
 
