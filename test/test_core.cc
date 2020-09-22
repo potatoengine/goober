@@ -3,7 +3,7 @@
 // See LICENSE.md for more details.
 
 #include "catch.hpp"
-#include "goober.hh"
+#include "goober/goober.hh"
 
 TEST_CASE("core initialization", "[core]") {
     grContext ctx;
