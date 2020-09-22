@@ -3,7 +3,7 @@
 // See LICENSE.md for more details.
 
 #include "catch.hpp"
-#include "goober/array.hh"
+#include "goober/core.hh"
 
 #include <string>
 
@@ -19,11 +19,11 @@ TEST_CASE("grArray", "[array]") {
             test.push_back(index);
             REQUIRE(test.size() == index + 1);
             REQUIRE(test.capacity() >= test.size());
-            REQUIRE(test.first[index] == index);
+            REQUIRE(test[index] == index);
         }
 
         for (int index = 0; index != iterations; ++index)
-            REQUIRE(test.first[index] == index);
+            REQUIRE(test[index] == index);
     }
 
     SECTION("push_back non-trivial") {
@@ -37,11 +37,11 @@ TEST_CASE("grArray", "[array]") {
             test.push_back(input);
             REQUIRE(test.size() == index + 1);
             REQUIRE(test.capacity() >= test.size());
-            REQUIRE(test.first[index] == input);
+            REQUIRE(test[index] == input);
         }
 
         for (int index = 0; index != iterations; ++index)
-            REQUIRE(test.first[index] == input);
+            REQUIRE(test[index] == input);
     }
 
     SECTION("resize") {

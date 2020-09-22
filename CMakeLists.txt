@@ -5,15 +5,10 @@ enable_testing()
 
 add_library(goober_core)
 target_sources(goober_core PRIVATE
-    include/goober/array.hh
     include/goober/core.hh
-    include/goober/goober.hh
-    include/goober/keyboard.hh
-    include/goober/mouse.hh
-    src/goober.cc
-    src/mouse.cc
+    src/core.cc
 )
-target_include_directories(goober_core PUBLIC include PRIVATE include/goober)
+target_include_directories(goober_core PUBLIC include)
 target_compile_features(goober_core PUBLIC cxx_std_17)
 
 add_subdirectory(test)
