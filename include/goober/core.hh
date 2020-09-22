@@ -8,6 +8,8 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
+#include <type_traits>
 
 #define GOOBER_API
 
@@ -46,7 +48,7 @@ inline namespace goober {
     };
 
     // ------------------------------------------------------
-    //  * grVec2 point vector *
+    //  * component-wise vectors *
     // ------------------------------------------------------
 
     /// @brief Two-component floating-point vector type.
@@ -71,6 +73,28 @@ inline namespace goober {
         }
         constexpr friend bool operator!=(grVec2 l, grVec2 r) noexcept {
             return l.x != r.x || l.y != r.y;
+        }
+    };
+
+    /// @brief Four-component floating-point vector type.
+    struct grVec4 {
+        float x = 0.f;
+        float y = 0.f;
+        float z = 0.f;
+        float w = 0.f;
+
+        grVec4() = default;
+        constexpr grVec4(float xi, float yi, float zi, float wi) noexcept
+            : x(xi)
+            , y(yi)
+            , z(zi)
+            , w(wi) {}
+
+        constexpr friend bool operator==(grVec4 l, grVec4 r) noexcept {
+            return l.x == r.x && l.y == r.y && l.z == r.z && l.w == r.w;
+        }
+        constexpr friend bool operator!=(grVec4 l, grVec4 r) noexcept {
+            return l.x != r.x || l.y != r.y || l.z != r.z || l.w != r.w;
         }
     };
 
@@ -126,6 +150,37 @@ inline namespace goober {
         T* _sentinel = nullptr;
         T* _reserved = nullptr;
         grAllocator const* _allocator = nullptr;
+    };
+
+    // ------------------------------------------------------
+    //  * grDrawList drawing helper *
+    // ------------------------------------------------------
+
+    struct grDrawList {
+        using Index = std::uint16_t;
+        using Offset = std::uint32_t;
+
+        struct Vertex {
+            grVec2 pos;
+            grVec2 uv;
+        };
+
+        struct Command {
+            Offset indexStart = 0;
+            Offset vertexStart = 0;
+            Offset indexCount = 0;
+        };
+
+        grArray<Index> indices;
+        grArray<Vertex> vertices;
+        grArray<Command> commands;
+
+        grDrawList(grAllocator& allocator)
+            : indices(allocator)
+            , vertices(allocator)
+            , commands(allocator) {}
+
+        inline void drawRect(grVec2 ul, grVec2 br);
     };
 
     // ------------------------------------------------------
@@ -373,6 +428,28 @@ inline namespace goober {
                 std::memcpy(_data, tmp._data, size * sizeof(T));
             }
         }
+    }
+
+    // ------------------------------------------------------
+    //  * grDrawList implementation *
+    // ------------------------------------------------------
+
+    void grDrawList::drawRect(grVec2 ul, grVec2 br) {
+        Offset vertex = static_cast<Offset>(vertices.size());
+        vertices.push_back({ul, {}});
+        vertices.push_back({{br.x, ul.y}, {}});
+        vertices.push_back({br, {}});
+        vertices.push_back({{ul.x, br.y}, {}});
+
+        Offset index = static_cast<Offset>(indices.size());
+        indices.push_back(vertex);
+        indices.push_back(vertex + 1);
+        indices.push_back(vertex + 2);
+        indices.push_back(vertex + 1);
+        indices.push_back(vertex + 2);
+        indices.push_back(vertex + 3);
+
+        commands.push_back({index, vertex, 6});
     }
 
 } // namespace goober
