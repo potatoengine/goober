@@ -80,6 +80,29 @@ inline namespace goober {
         return !isDown && wasDown;
     }
 
+    bool grIsMouseOver(grContext const* context, grVec4 area) noexcept {
+        if (context == nullptr)
+            return false;
+
+        return grIsContained(area, context->mousePos);
+    }
+
+    bool grIsMouseEntering(grContext const* context, grVec4 area) noexcept {
+        if (context == nullptr)
+            return false;
+
+        return grIsContained(area, context->mousePos) &&
+            !grIsContained(area, context->mousePosLast);
+    }
+
+    bool grIsMouseLeaving(grContext const* context, grVec4 area) noexcept {
+        if (context == nullptr)
+            return false;
+
+        return !grIsContained(area, context->mousePos) &&
+            grIsContained(area, context->mousePosLast);
+    }
+
     void grDrawList::drawRect(grVec2 ul, grVec2 br, grColor color) {
         Offset vertex = static_cast<Offset>(vertices.size());
         Offset index = static_cast<Offset>(indices.size());

@@ -341,6 +341,14 @@ inline namespace goober {
         return state;
     }
 
+    /// @brief Tests if a point is contained within a bounding box.
+    /// @param aabb Bounding box (x1, y1, x2, y2)
+    /// @param pos Position to test
+    /// @return True if pos is contained within aabb.
+    constexpr bool grIsContained(grVec4 aabb, grVec2 pos) noexcept {
+        return pos.x >= aabb.x && pos.x < aabb.z && pos.y >= aabb.y && pos.y < aabb.w;
+    }
+
     // ------------------------------------------------------
     //  * core public interfaces *
     // ------------------------------------------------------
@@ -354,6 +362,10 @@ inline namespace goober {
     GOOBER_API bool grIsMouseDown(grContext const* context, grButtonMask button) noexcept;
     GOOBER_API bool grIsMousePressed(grContext const* context, grButtonMask button) noexcept;
     GOOBER_API bool grIsMouseReleased(grContext const* context, grButtonMask button) noexcept;
+
+    GOOBER_API bool grIsMouseOver(grContext const* context, grVec4 area) noexcept;
+    GOOBER_API bool grIsMouseEntering(grContext const* context, grVec4 area) noexcept;
+    GOOBER_API bool grIsMouseLeaving(grContext const* context, grVec4 area) noexcept;
 
     // ------------------------------------------------------
     //  * grArray implementation *

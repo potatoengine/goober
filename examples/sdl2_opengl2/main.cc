@@ -39,10 +39,29 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        {
+            int x = 0, y = 0;
+            Uint32 const buttons = SDL_GetMouseState(&x, &y);
+            ctx->mousePos = {static_cast<float>(x), static_cast<float>(y)};
+            ctx->mouseButtons = {};
+            if (0 != (buttons & SDL_BUTTON_LEFT))
+                ctx->mouseButtons = ctx->mouseButtons | grButtonMask::Left;
+            if (0 != (buttons & SDL_BUTTON_RIGHT))
+                ctx->mouseButtons = ctx->mouseButtons | grButtonMask::Right;
+            if (0 != (buttons & SDL_BUTTON_MIDDLE))
+                ctx->mouseButtons = ctx->mouseButtons | grButtonMask::Middle;
+        }
+
         grBeginFrame(ctx, 0.f);
         ctx->draw.drawRect({10, 10}, {200, 200}, grColors::darkgrey);
-        ctx->draw.drawRect({20, 20}, {190, 190}, grColors::grey);
+        ctx->draw.drawRect(
+            {20, 20},
+            {190, 190},
+            grIsMouseOver(ctx, {20, 20, 190, 190}) ? grColors::yellow : grColors::grey);
         grEndFrame(ctx);
+
+        if (grIsMouseOver(ctx, {20, 20, 190, 190}) && grIsMouseDown(ctx, grButtonMask::Left))
+            running = false;
 
         glViewport(0, 0, width, height);
         glClearColor(0.f, 0.3f, 0.6f, 0.f);
