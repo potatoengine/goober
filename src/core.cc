@@ -16,11 +16,9 @@ inline namespace goober {
     }
 
     grResult<grContext*> grCreateContext(grAllocator& allocator) {
-        grContext* context = new (allocator.allocate(sizeof(grContext))) grContext{};
+        grContext* context = new (allocator.allocate(sizeof(grContext))) grContext(allocator);
         if (context == nullptr)
             return grStatus::BadAlloc;
-
-        context->allocator = allocator;
 
         return context;
     }
@@ -38,6 +36,8 @@ inline namespace goober {
     grStatus grBeginFrame(grContext* context, float deltaTime) {
         if (context == nullptr)
             return grStatus::NullArgument;
+
+        context->draw.reset();
 
         context->mousePosDelta = context->mousePos - context->mousePosLast;
         context->deltaTime = deltaTime;
@@ -78,6 +78,24 @@ inline namespace goober {
         bool const wasDown = (context->mouseButtonsLast & button) != grButtonMask{};
 
         return !isDown && wasDown;
+    }
+
+    void grDrawList::drawRect(grVec2 ul, grVec2 br, grColor color) {
+        Offset vertex = static_cast<Offset>(vertices.size());
+        vertices.push_back({ul, {}, color});
+        vertices.push_back({{br.x, ul.y}, {}, color});
+        vertices.push_back({br, {}, color});
+        vertices.push_back({{ul.x, br.y}, {}, color});
+
+        Offset index = static_cast<Offset>(indices.size());
+        indices.push_back(vertex);
+        indices.push_back(vertex + 1);
+        indices.push_back(vertex + 2);
+        indices.push_back(vertex + 2);
+        indices.push_back(vertex + 3);
+        indices.push_back(vertex + 0);
+
+        commands.push_back({index, vertex, 6});
     }
 
 } // namespace goober

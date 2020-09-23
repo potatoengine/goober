@@ -99,6 +99,39 @@ inline namespace goober {
     };
 
     // ------------------------------------------------------
+    //  * RGBA colors *
+    // ------------------------------------------------------
+
+    struct grColor {
+        using Component = unsigned char;
+
+        Component r = 0;
+        Component g = 0;
+        Component b = 0;
+        Component a = 255;
+
+        grColor() = default;
+        constexpr grColor(Component ri, Component gi, Component bi, Component ai = 255) noexcept
+            : r(ri)
+            , g(gi)
+            , b(bi)
+            , a(ai) {}
+    };
+
+    namespace grColors {
+        static constexpr grColor black{0, 0, 0, 255};
+        static constexpr grColor white{255, 255, 255, 255};
+        static constexpr grColor grey{176, 176, 176, 255};
+        static constexpr grColor darkgrey{96, 96, 96, 255};
+        static constexpr grColor red{255, 0, 0, 255};
+        static constexpr grColor green{0, 255, 0, 255};
+        static constexpr grColor blue{0, 0, 255, 255};
+        static constexpr grColor yellow{255, 255, 0, 255};
+        static constexpr grColor magenta{255, 0, 255, 255};
+        static constexpr grColor cyan{0, 255, 255, 255};
+    } // namespace grColors
+
+    // ------------------------------------------------------
     //  * grArray dynamic array *
     // ------------------------------------------------------
 
@@ -135,6 +168,8 @@ inline namespace goober {
 
         inline void shrink_to_fit();
 
+        void clear() noexcept { resize(0); }
+
         inline reference push_back(const_reference value);
 
         iterator begin() noexcept { return _data; }
@@ -163,6 +198,7 @@ inline namespace goober {
         struct Vertex {
             grVec2 pos;
             grVec2 uv;
+            grColor rgba;
         };
 
         struct Command {
@@ -175,12 +211,18 @@ inline namespace goober {
         grArray<Vertex> vertices;
         grArray<Command> commands;
 
-        grDrawList(grAllocator& allocator)
+        grDrawList(grAllocator const& allocator)
             : indices(allocator)
             , vertices(allocator)
             , commands(allocator) {}
 
-        inline void drawRect(grVec2 ul, grVec2 br);
+        GOOBER_API void drawRect(grVec2 ul, grVec2 br, grColor color);
+
+        void reset() noexcept {
+            indices.clear();
+            vertices.clear();
+            commands.clear();
+        }
     };
 
     // ------------------------------------------------------
@@ -272,6 +314,10 @@ inline namespace goober {
         grButtonMask mouseButtonsLast{};
         grButtonMask mouseButtons{};
         float deltaTime = 0.f;
+
+        grDrawList draw;
+
+        grContext(grAllocator const& alloc) : allocator(allocator), draw(alloc) {}
     };
 
     // ------------------------------------------------------
@@ -428,28 +474,6 @@ inline namespace goober {
                 std::memcpy(_data, tmp._data, size * sizeof(T));
             }
         }
-    }
-
-    // ------------------------------------------------------
-    //  * grDrawList implementation *
-    // ------------------------------------------------------
-
-    void grDrawList::drawRect(grVec2 ul, grVec2 br) {
-        Offset vertex = static_cast<Offset>(vertices.size());
-        vertices.push_back({ul, {}});
-        vertices.push_back({{br.x, ul.y}, {}});
-        vertices.push_back({br, {}});
-        vertices.push_back({{ul.x, br.y}, {}});
-
-        Offset index = static_cast<Offset>(indices.size());
-        indices.push_back(vertex);
-        indices.push_back(vertex + 1);
-        indices.push_back(vertex + 2);
-        indices.push_back(vertex + 1);
-        indices.push_back(vertex + 2);
-        indices.push_back(vertex + 3);
-
-        commands.push_back({index, vertex, 6});
     }
 
 } // namespace goober

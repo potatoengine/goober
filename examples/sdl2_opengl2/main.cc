@@ -40,11 +40,32 @@ int main(int argc, char* argv[]) {
         }
 
         grBeginFrame(ctx, 0.f);
+        ctx->draw.drawRect({10, 10}, {200, 200}, grColors::darkgrey);
         grEndFrame(ctx);
 
         glViewport(0, 0, width, height);
-        glClearColor(1.f, 0.f, 1.f, 0.f);
+        glClearColor(0.f, 0.3f, 0.6f, 0.f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glOrtho(0, width, height, 0, 0, 1.f);
+
+        for (auto const& cmd : ctx->draw.commands) {
+            glBegin(GL_TRIANGLES);
+            for (grDrawList::Offset index = cmd.indexStart, end = index + cmd.indexCount;
+                 index != end;
+                 ++index) {
+                auto const& vert = ctx->draw.vertices[ctx->draw.indices[index]];
+                glColor4f(
+                    vert.rgba.r / 255.0f,
+                    vert.rgba.g / 255.0f,
+                    vert.rgba.b / 255.0f,
+                    vert.rgba.a / 255.0f);
+                glVertex2f(vert.pos.x, vert.pos.y);
+            }
+            glEnd();
+        }
 
         SDL_GL_SwapWindow(window);
     }
