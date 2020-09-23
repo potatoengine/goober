@@ -431,7 +431,7 @@ inline namespace goober {
 
     template <typename T>
     void grArray<T>::reserve(size_type newCapacity) {
-        if (_reserved - _data >= newCapacity)
+        if (static_cast<size_type>(_reserved - _data) >= newCapacity)
             return;
 
         _reallocate(newCapacity);
@@ -471,9 +471,6 @@ inline namespace goober {
 
     template <typename T>
     void grArray<T>::_reallocate(size_type newCapacity) {
-        if (_sentinel - _data >= newCapacity)
-            return;
-
         grArray<T> tmp = static_cast<grArray<T>&&>(*this);
 
         _data = static_cast<T*>(_allocator->allocate(newCapacity * sizeof(T)));
