@@ -6,6 +6,7 @@ target_sources(goober_example_sdl2_opengl2 PRIVATE
 )
 target_link_libraries(goober_example_sdl2_opengl2 PRIVATE
     goober_core
+    goober_widgets
     SDL2
     SDL2main
     opengl32

@@ -3,6 +3,7 @@
 // See LICENSE.md for more details.
 
 #include "goober/core.hh"
+#include "goober/widgets.hh"
 
 #include <SDL.h>
 #include <SDL_main.h>
@@ -53,11 +54,10 @@ int main(int argc, char* argv[]) {
         }
 
         grBeginFrame(ctx, 0.f);
-        ctx->draw.drawRect({10, 10}, {200, 200}, grColors::darkgrey);
-        ctx->draw.drawRect(
-            {20, 20},
-            {190, 190},
-            grIsMouseOver(ctx, {20, 20, 190, 190}) ? grColors::yellow : grColors::grey);
+
+        if (grButton(ctx, "exit", {240, 240, 300, 280}, grColors::darkgrey))
+            running = false;
+
         grEndFrame(ctx);
 
         if (grIsMouseOver(ctx, {20, 20, 190, 190}) && grIsMouseDown(ctx, grButtonMask::Left))
