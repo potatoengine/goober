@@ -104,10 +104,10 @@ inline namespace goober {
     }
 
     void grDrawList::drawRect(grVec2 ul, grVec2 br, grColor color) {
-        Offset vertex = static_cast<Offset>(vertices.size());
-        Offset index = static_cast<Offset>(indices.size());
+        Offset const vertex = static_cast<Offset>(vertices.size());
+        Offset const index = static_cast<Offset>(indices.size());
 
-        Command& cmd = commands.empty() ? commands.push_back({index, vertex, 0}) : commands.back();
+        Command& cmd = commands.empty() ? commands.push_back({index, 0}) : commands.back();
 
         vertices.push_back({ul, {}, color});
         vertices.push_back({{br.x, ul.y}, {}, color});

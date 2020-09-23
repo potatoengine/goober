@@ -71,21 +71,27 @@ int main(int argc, char* argv[]) {
         glLoadIdentity();
         glOrtho(0, width, height, 0, 0, 1.f);
 
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_COLOR_ARRAY);
         for (auto const& cmd : ctx->draw.commands) {
-            glBegin(GL_TRIANGLES);
-            for (grDrawList::Offset index = cmd.indexStart, end = index + cmd.indexCount;
-                 index != end;
-                 ++index) {
-                auto const& vert = ctx->draw.vertices[ctx->draw.indices[index]];
-                glColor4f(
-                    vert.rgba.r / 255.0f,
-                    vert.rgba.g / 255.0f,
-                    vert.rgba.b / 255.0f,
-                    vert.rgba.a / 255.0f);
-                glVertex2f(vert.pos.x, vert.pos.y);
-            }
-            glEnd();
+            glVertexPointer(
+                2,
+                GL_FLOAT,
+                sizeof(grDrawList::Vertex),
+                &ctx->draw.vertices.front().pos);
+            glColorPointer(
+                4,
+                GL_UNSIGNED_BYTE,
+                sizeof(grDrawList::Vertex),
+                &ctx->draw.vertices.front().rgba);
+            glDrawElements(
+                GL_TRIANGLES,
+                cmd.indexCount,
+                GL_UNSIGNED_SHORT,
+                &ctx->draw.indices[cmd.indexStart]);
         }
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_COLOR_ARRAY);
 
         SDL_GL_SwapWindow(window);
     }

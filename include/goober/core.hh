@@ -209,7 +209,6 @@ inline namespace goober {
 
         struct Command {
             Offset indexStart = 0;
-            Offset vertexStart = 0;
             Offset indexCount = 0;
         };
 
