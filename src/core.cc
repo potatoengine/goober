@@ -82,12 +82,15 @@ inline namespace goober {
 
     void grDrawList::drawRect(grVec2 ul, grVec2 br, grColor color) {
         Offset vertex = static_cast<Offset>(vertices.size());
+        Offset index = static_cast<Offset>(indices.size());
+
+        Command& cmd = commands.empty() ? commands.push_back({index, vertex, 0}) : commands.back();
+
         vertices.push_back({ul, {}, color});
         vertices.push_back({{br.x, ul.y}, {}, color});
         vertices.push_back({br, {}, color});
         vertices.push_back({{ul.x, br.y}, {}, color});
 
-        Offset index = static_cast<Offset>(indices.size());
         indices.push_back(vertex);
         indices.push_back(vertex + 1);
         indices.push_back(vertex + 2);
@@ -95,7 +98,7 @@ inline namespace goober {
         indices.push_back(vertex + 3);
         indices.push_back(vertex + 0);
 
-        commands.push_back({index, vertex, 6});
+        cmd.indexCount += 6;
     }
 
 } // namespace goober

@@ -154,11 +154,17 @@ inline namespace goober {
         inline grArray(grArray&& rhs) noexcept;
         inline grArray& operator=(grArray&& rhs) noexcept;
 
+        bool empty() const noexcept { return _data == _sentinel; }
         size_type size() const noexcept { return _sentinel - _data; }
         size_type capacity() const noexcept { return _reserved - _data; }
 
         pointer data() noexcept { return _data; }
         const_pointer data() const noexcept { return _data; }
+
+        reference front() noexcept { return *_data; }
+        const_reference front() const noexcept { return *_data; }
+        reference back() noexcept { return *(_sentinel - 1); }
+        const_reference back() const noexcept { return *(_sentinel - 1); }
 
         reference operator[](size_type index) noexcept { return _data[index]; }
         const_reference operator[](size_type index) const noexcept { return _data[index]; }

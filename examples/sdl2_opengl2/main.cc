@@ -41,6 +41,7 @@ int main(int argc, char* argv[]) {
 
         grBeginFrame(ctx, 0.f);
         ctx->draw.drawRect({10, 10}, {200, 200}, grColors::darkgrey);
+        ctx->draw.drawRect({20, 20}, {190, 190}, grColors::grey);
         grEndFrame(ctx);
 
         glViewport(0, 0, width, height);

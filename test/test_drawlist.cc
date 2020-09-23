@@ -9,7 +9,7 @@ TEST_CASE("draw rect", "[draw]") {
     grAllocator alloc;
     grDrawList draw(alloc);
 
-    draw.drawRect({0, 0}, {10, 10});
+    draw.drawRect({0, 0}, {10, 10}, grColors::white);
 
     REQUIRE(draw.vertices.size() == 4);
     REQUIRE(draw.indices.size() == 6);
