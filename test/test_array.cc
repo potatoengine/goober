@@ -11,18 +11,18 @@ TEST_CASE("grArray", "[array]") {
     grAllocator alloc;
 
     SECTION("push_back trivial") {
-        grArray<int> test(alloc);
+        grArray<std::size_t> test(alloc);
 
-        int const iterations = 1000;
+        std::size_t const iterations = 1000;
 
-        for (int index = 0; index != iterations; ++index) {
+        for (std::size_t index = 0; index != iterations; ++index) {
             test.push_back(index);
             REQUIRE(test.size() == index + 1);
             REQUIRE(test.capacity() >= test.size());
             REQUIRE(test[index] == index);
         }
 
-        for (int index = 0; index != iterations; ++index)
+        for (std::size_t index = 0; index != iterations; ++index)
             REQUIRE(test[index] == index);
     }
 
@@ -31,25 +31,25 @@ TEST_CASE("grArray", "[array]") {
 
         std::string const input = "test";
 
-        int const iterations = 1000;
+        std::size_t const iterations = 1000;
 
-        for (int index = 0; index != iterations; ++index) {
+        for (std::size_t index = 0; index != iterations; ++index) {
             test.push_back(input);
             REQUIRE(test.size() == index + 1);
             REQUIRE(test.capacity() >= test.size());
             REQUIRE(test[index] == input);
         }
 
-        for (int index = 0; index != iterations; ++index)
+        for (std::size_t index = 0; index != iterations; ++index)
             REQUIRE(test[index] == input);
     }
 
     SECTION("resize") {
-        grArray<int> test(alloc);
+        grArray<std::size_t> test(alloc);
 
-        int const size1 = 1000;
-        int const size2 = 4000;
-        int const size3 = 2000;
+        std::size_t const size1 = 1000;
+        std::size_t const size2 = 4000;
+        std::size_t const size3 = 2000;
 
         test.resize(size1);
         REQUIRE(test.size() == size1);
@@ -65,9 +65,9 @@ TEST_CASE("grArray", "[array]") {
     }
 
     SECTION("shrink_to_fit") {
-        grArray<int> test(alloc);
+        grArray<std::size_t> test(alloc);
 
-        int const capacity = 1000;
+        std::size_t const capacity = 1000;
 
         test.reserve(capacity);
         REQUIRE(test.capacity() == capacity);

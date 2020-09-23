@@ -11,7 +11,7 @@ TEST_CASE("core initialization", "[core]") {
     REQUIRE(result == grStatus::Ok);
     REQUIRE(ctx != nullptr);
     auto result2 = grDestroyContext(ctx);
-    REQUIRE(result == grStatus::Ok);
+    REQUIRE(result2 == grStatus::Ok);
 }
 
 TEST_CASE("fnv1a", "[core][hash]") {
