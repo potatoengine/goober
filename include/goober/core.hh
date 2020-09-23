@@ -323,7 +323,7 @@ inline namespace goober {
 
         grDrawList draw;
 
-        grContext(grAllocator const& alloc) : allocator(allocator), draw(alloc) {}
+        grContext(grAllocator const& alloc) : allocator(alloc), draw(alloc) {}
     };
 
     // ------------------------------------------------------
