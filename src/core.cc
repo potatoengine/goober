@@ -6,17 +6,8 @@
 
 inline namespace goober {
 
-    grAllocator::grAllocator() noexcept {
-        _allocate = [](size_t sizeInBytes, void*) -> void* {
-            return std::malloc(sizeInBytes);
-        };
-        _deallocate = [](void* memory, size_t sizeInBytes, void*) noexcept {
-            std::free(memory);
-        };
-    }
-
-    grResult<grContext*> grCreateContext(grAllocator& allocator) {
-        grContext* context = new (allocator.allocate(sizeof(grContext))) grContext(allocator);
+    grResult<grContext*> grCreateContext() {
+        grContext* context = new (grAlloc(sizeof(grContext))) grContext;
         if (context == nullptr)
             return grStatus::BadAlloc;
 
@@ -28,7 +19,7 @@ inline namespace goober {
             return grStatus::NullArgument;
 
         context->~grContext();
-        context->allocator.deallocate(context, sizeof(grContext));
+        grFree(context);
 
         return grStatus::Ok;
     }
@@ -46,10 +37,9 @@ inline namespace goober {
             }
         }
 
-        grPortal* port = context->portals.push_back(
-            new (context->allocator.allocate(sizeof(grPortal))) grPortal(context->allocator));
+        grPortal* port = context->portals.push_back(new (grAlloc(sizeof(grPortal))) grPortal);
         port->context = context;
-        port->name = grString(context->allocator, name);
+        port->name = grString(name);
         port->id = id;
         context->portalStack.push_back(port);
         return id;

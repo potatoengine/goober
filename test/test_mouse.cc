@@ -7,8 +7,7 @@
 
 TEST_CASE("mouse input", "[core][mouse]") {
     SECTION("position") {
-        grAllocator alloc;
-        auto [result, ctx] = grCreateContext(alloc);
+        auto [result, ctx] = grCreateContext();
 
         ctx->mousePos = {10, 10};
         grBeginFrame(ctx, 0.f);
@@ -22,8 +21,7 @@ TEST_CASE("mouse input", "[core][mouse]") {
     }
 
     SECTION("button down") {
-        grAllocator alloc;
-        auto [result, ctx] = grCreateContext(alloc);
+        auto [result, ctx] = grCreateContext();
 
         ctx->mouseButtons = grButtonMask::Left;
         grBeginFrame(ctx, 0.f);
@@ -41,8 +39,7 @@ TEST_CASE("mouse input", "[core][mouse]") {
     }
 
     SECTION("button pressed") {
-        grAllocator alloc;
-        auto [result, ctx] = grCreateContext(alloc);
+        auto [result, ctx] = grCreateContext();
 
         ctx->mouseButtons = grButtonMask::Left;
         grBeginFrame(ctx, 0.f);
@@ -67,8 +64,7 @@ TEST_CASE("mouse input", "[core][mouse]") {
     }
 
     SECTION("button released") {
-        grAllocator alloc;
-        auto [result, ctx] = grCreateContext(alloc);
+        auto [result, ctx] = grCreateContext();
 
         ctx->mouseButtons = grButtonMask::Left;
         grBeginFrame(ctx, 0.f);

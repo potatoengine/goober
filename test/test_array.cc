@@ -8,10 +8,8 @@
 #include <string>
 
 TEST_CASE("grArray", "[array]") {
-    grAllocator alloc;
-
     SECTION("push_back trivial") {
-        grArray<std::size_t> test(alloc);
+        grArray<std::size_t> test;
 
         std::size_t const iterations = 1000;
 
@@ -27,7 +25,7 @@ TEST_CASE("grArray", "[array]") {
     }
 
     SECTION("push_back non-trivial") {
-        grArray<std::string> test(alloc);
+        grArray<std::string> test;
 
         std::string const input = "test";
 
@@ -45,7 +43,7 @@ TEST_CASE("grArray", "[array]") {
     }
 
     SECTION("resize") {
-        grArray<std::size_t> test(alloc);
+        grArray<std::size_t> test;
 
         std::size_t const size1 = 1000;
         std::size_t const size2 = 4000;
@@ -65,7 +63,7 @@ TEST_CASE("grArray", "[array]") {
     }
 
     SECTION("shrink_to_fit") {
-        grArray<std::size_t> test(alloc);
+        grArray<std::size_t> test;
 
         std::size_t const capacity = 1000;
 

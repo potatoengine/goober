@@ -6,8 +6,7 @@
 #include "goober/core.hh"
 
 TEST_CASE("core initialization", "[core]") {
-    grAllocator alloc;
-    auto [result, ctx] = grCreateContext(alloc);
+    auto [result, ctx] = grCreateContext();
     REQUIRE(result == grStatus::Ok);
     REQUIRE(ctx != nullptr);
     auto result2 = grDestroyContext(ctx);

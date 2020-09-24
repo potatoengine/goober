@@ -17,8 +17,7 @@ int main(int argc, char* argv[]) {
         SDL_CreateWindow("OpenGL Test", 100, 100, width, height, SDL_WINDOW_OPENGL);
     SDL_GLContext glCtx = SDL_GL_CreateContext(window);
 
-    grAllocator allocator;
-    auto [rs, ctx] = grCreateContext(allocator);
+    auto [rs, ctx] = grCreateContext();
 
     bool running = true;
     while (running) {

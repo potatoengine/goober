@@ -6,8 +6,7 @@
 #include "goober/core.hh"
 
 TEST_CASE("draw rect", "[draw]") {
-    grAllocator alloc;
-    grDrawList draw(alloc);
+    grDrawList draw;
 
     draw.drawRect({0, 0}, {10, 10}, grColors::white);
 

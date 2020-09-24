@@ -14,6 +14,13 @@
 
 #define GOOBER_API
 
+#if !defined(grAlloc)
+#define grAlloc(bytes) std::malloc((bytes))
+#endif
+#if !defined(grFree)
+#define grFree(mem) std::free((mem))
+#endif
+
 inline namespace goober {
     // ------------------------------------------------------
     //  * forward declarations *
@@ -21,39 +28,6 @@ inline namespace goober {
 
     struct grContext;
     struct grPortal;
-
-    // ------------------------------------------------------
-    //  * grAllocator memory allocation handler *
-    // ------------------------------------------------------
-
-    /// @brief Allocator wrapper for Goober
-    struct grAllocator {
-        using Allocate = void* (*)(std::size_t sizeInBytes, void* userData);
-        using Deallocate = void (*)(void* memory, std::size_t sizeInBytes, void* userData) noexcept;
-
-        GOOBER_API grAllocator() noexcept;
-        grAllocator(Allocate allocate, Deallocate deallocate, void* data = nullptr) noexcept
-            : _allocate(allocate)
-            , _deallocate(deallocate)
-            , _userData(data) {}
-
-        /// @brief Allocates memory.
-        /// @param bytes Number of bytes to allocate.
-        /// @return Allocates memory; may return nullptr on failure.
-        void* allocate(std::size_t bytes) const { return _allocate(bytes, _userData); }
-
-        /// @brief Deallocates memory allocated via this allocator.
-        /// @param memory Memory to deallocate. May be nullptr.
-        /// @param bytes Size in bytes of memory to deallocate.
-        void deallocate(void* memory, std::size_t bytes) const noexcept {
-            _deallocate(memory, bytes, _userData);
-        }
-
-    private:
-        Allocate _allocate = nullptr;
-        Deallocate _deallocate = nullptr;
-        void* _userData = nullptr;
-    };
 
     // ------------------------------------------------------
     //  * component-wise vectors *
@@ -156,7 +130,7 @@ inline namespace goober {
         using iterator = pointer;
         using const_iterator = const_pointer;
 
-        explicit grArray(grAllocator const& alloc) : _allocator(&alloc) {}
+        grArray() = default;
         inline ~grArray();
 
         inline grArray(grArray&& rhs) noexcept;
@@ -200,7 +174,6 @@ inline namespace goober {
         T* _data = nullptr;
         T* _sentinel = nullptr;
         T* _reserved = nullptr;
-        grAllocator const* _allocator = nullptr;
     };
 
     // ------------------------------------------------------
@@ -240,18 +213,13 @@ inline namespace goober {
         using size_type = std::size_t;
 
         grString() = default;
-        grString(grAllocator const* alloc, std::nullptr_t) = delete;
-        explicit grString(grAllocator const& alloc, pointer zstr)
-            : grString(alloc, zstr, std::strlen(zstr)) {}
-        explicit grString(grAllocator const& alloc, grStringView str)
-            : grString(alloc, str.data, str.size()) {}
-        inline explicit grString(grAllocator const& alloc, pointer nstr, size_type size);
+        grString(std::nullptr_t) = delete;
+        explicit grString(pointer zstr) : grString(zstr, std::strlen(zstr)) {}
+        explicit grString(grStringView str) : grString(str.data, str.size()) {}
+        inline explicit grString(pointer nstr, size_type size);
         inline ~grString();
 
-        constexpr grString(grString&& rhs) noexcept
-            : _data(rhs._data)
-            , _sentinel(rhs._sentinel)
-            , _allocator(rhs._allocator) {
+        constexpr grString(grString&& rhs) noexcept : _data(rhs._data), _sentinel(rhs._sentinel) {
             rhs._data = rhs._sentinel = nullptr;
         }
         inline grString& operator=(grString&& rhs) noexcept;
@@ -265,7 +233,6 @@ inline namespace goober {
     private:
         char* _data = nullptr;
         char* _sentinel = nullptr;
-        grAllocator const* _allocator = nullptr;
     };
 
     // ------------------------------------------------------
@@ -290,11 +257,6 @@ inline namespace goober {
         grArray<Index> indices;
         grArray<Vertex> vertices;
         grArray<Command> commands;
-
-        grDrawList(grAllocator const& allocator)
-            : indices(allocator)
-            , vertices(allocator)
-            , commands(allocator) {}
 
         GOOBER_API void drawRect(grVec2 ul, grVec2 br, grColor color);
 
@@ -386,7 +348,6 @@ inline namespace goober {
 
     /// @brief Core state object for goober.
     struct grContext {
-        grAllocator allocator;
         grVec2 mousePosLast;
         grVec2 mousePos;
         grVec2 mousePosDelta;
@@ -399,11 +360,6 @@ inline namespace goober {
         grArray<grPortal*> portals;
         grId activeId = {};
         grId activeIdNext = {};
-
-        grContext(grAllocator const& alloc)
-            : allocator(alloc)
-            , portalStack(alloc)
-            , portals(alloc) {}
     };
 
     // ------------------------------------------------------
@@ -427,8 +383,6 @@ inline namespace goober {
         grArray<grId> idStack;
         grArray<grWidget> widgetStack;
         grDrawList draw;
-
-        grPortal(grAllocator const& alloc) : idStack(alloc), widgetStack(alloc), draw(alloc) {}
     };
 
     // ------------------------------------------------------
@@ -480,7 +434,7 @@ inline namespace goober {
     //  * core public interfaces *
     // ------------------------------------------------------
 
-    GOOBER_API grResult<grContext*> grCreateContext(grAllocator& allocator);
+    GOOBER_API grResult<grContext*> grCreateContext();
     GOOBER_API grStatus grDestroyContext(grContext* context);
 
     GOOBER_API grResult<grId> grBeginPortal(grContext* context, grStringView name);
@@ -524,8 +478,7 @@ inline namespace goober {
     grArray<T>::grArray(grArray&& rhs) noexcept
         : _data(rhs._data)
         , _sentinel(rhs._sentinel)
-        , _reserved(rhs._reserved)
-        , _allocator(rhs._allocator) {
+        , _reserved(rhs._reserved) {
         rhs._data = rhs._sentinel = rhs._reserved = nullptr;
     }
 
@@ -582,7 +535,7 @@ inline namespace goober {
     template <typename T>
     void grArray<T>::shrink_to_fit() {
         if (_data == _sentinel) {
-            _allocator->deallocate(_data, (_reserved - _data) * sizeof(T));
+            grFree(_data);
             _data = _sentinel = _reserved = nullptr;
         }
         else if (_sentinel != _reserved) {
@@ -615,7 +568,7 @@ inline namespace goober {
     void grArray<T>::_reallocate(size_type newCapacity) {
         grArray<T> tmp = static_cast<grArray<T>&&>(*this);
 
-        _data = static_cast<T*>(_allocator->allocate(newCapacity * sizeof(T)));
+        _data = static_cast<T*>(grAlloc(newCapacity * sizeof(T)));
         _sentinel = _data;
         _reserved = _data + newCapacity;
 
@@ -636,28 +589,24 @@ inline namespace goober {
     //  * grString implementation *
     // ------------------------------------------------------
 
-    grString::grString(grAllocator const& alloc, pointer nstr, size_type size)
-        : _data(static_cast<char*>(alloc.allocate(size + 1)))
-        , _sentinel(_data + size)
-        , _allocator(&alloc) {
+    grString::grString(pointer nstr, size_type size)
+        : _data(static_cast<char*>(grAlloc(size + 1)))
+        , _sentinel(_data + size) {
         std::memcpy(_data, nstr, size);
         _data[size] = '\0';
     }
 
     grString::~grString() {
-        if (_data != nullptr) {
-            _allocator->deallocate(_data, _sentinel - _data + 1);
-        }
+        if (_data != nullptr)
+            grFree(_data);
     }
 
     grString& grString::operator=(grString&& rhs) noexcept {
-        if (_data != nullptr && _data != rhs._data) {
-            _allocator->deallocate(_data, _sentinel - _data + 1);
-        }
+        if (_data != nullptr && _data != rhs._data)
+            grFree(_data);
 
         _data = rhs._data;
         _sentinel = rhs._sentinel;
-        _allocator = rhs._allocator;
 
         rhs._data = rhs._sentinel = nullptr;
         return *this;
