@@ -148,7 +148,7 @@ inline namespace goober {
         reference back() noexcept { return *(_sentinel - 1); }
         const_reference back() const noexcept { return *(_sentinel - 1); }
 
-        value_type pop_back() noexcept { return *--_sentinel; }
+        inline void pop_back() noexcept;
 
         reference operator[](size_type index) noexcept { return _data[index]; }
         const_reference operator[](size_type index) const noexcept { return _data[index]; }
@@ -496,6 +496,11 @@ inline namespace goober {
             rhs._data = rhs._sentinel = rhs._reserved = nullptr;
         }
         return *this;
+    }
+
+    template <typename T>
+    void grArray<T>::pop_back() noexcept {
+        (--_sentinel)->~T();
     }
 
     template <typename T>
