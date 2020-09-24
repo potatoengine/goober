@@ -55,13 +55,12 @@ int main(int argc, char* argv[]) {
 
         grBeginFrame(ctx, 0.f);
 
+        grBeginPortal(ctx, "Test");
         if (grButton(ctx, "exit", {240, 240, 300, 280}, grColors::darkgrey))
             running = false;
+        grEndPortal(ctx);
 
         grEndFrame(ctx);
-
-        if (grIsMouseOver(ctx, {20, 20, 190, 190}) && grIsMouseDown(ctx, grButtonMask::Left))
-            running = false;
 
         glViewport(0, 0, width, height);
         glClearColor(0.f, 0.3f, 0.6f, 0.f);
@@ -73,22 +72,25 @@ int main(int argc, char* argv[]) {
 
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
-        for (auto const& cmd : ctx->draw.commands) {
-            glVertexPointer(
-                2,
-                GL_FLOAT,
-                sizeof(grDrawList::Vertex),
-                &ctx->draw.vertices.front().pos);
-            glColorPointer(
-                4,
-                GL_UNSIGNED_BYTE,
-                sizeof(grDrawList::Vertex),
-                &ctx->draw.vertices.front().rgba);
-            glDrawElements(
-                GL_TRIANGLES,
-                cmd.indexCount,
-                GL_UNSIGNED_SHORT,
-                &ctx->draw.indices[cmd.indexStart]);
+        for (grPortal* port : ctx->portals) {
+            grDrawList const& draw = port->draw;
+            for (grDrawList::Command const& cmd : draw.commands) {
+                glVertexPointer(
+                    2,
+                    GL_FLOAT,
+                    sizeof(grDrawList::Vertex),
+                    &draw.vertices.front().pos);
+                glColorPointer(
+                    4,
+                    GL_UNSIGNED_BYTE,
+                    sizeof(grDrawList::Vertex),
+                    &draw.vertices.front().rgba);
+                glDrawElements(
+                    GL_TRIANGLES,
+                    cmd.indexCount,
+                    GL_UNSIGNED_SHORT,
+                    &draw.indices[cmd.indexStart]);
+            }
         }
         glDisableClientState(GL_VERTEX_ARRAY);
         glDisableClientState(GL_COLOR_ARRAY);

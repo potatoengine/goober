@@ -10,7 +10,7 @@ inline namespace goober {
         _allocate = [](size_t sizeInBytes, void*) -> void* {
             return std::malloc(sizeInBytes);
         };
-        _deallocate = [](void* memory, size_t sizeInBytes, void*) {
+        _deallocate = [](void* memory, size_t sizeInBytes, void*) noexcept {
             std::free(memory);
         };
     }
@@ -33,11 +33,50 @@ inline namespace goober {
         return grStatus::Ok;
     }
 
+    grResult<grId> grBeginPortal(grContext* context, grStringView name) {
+        if (context == nullptr)
+            return grStatus::NullArgument;
+
+        grId id = grHashFnv1a(name);
+
+        for (grPortal* port : context->portals) {
+            if (port->id == id) {
+                context->portalStack.push_back(port);
+                return id;
+            }
+        }
+
+        grPortal* port = context->portals.push_back(
+            new (context->allocator.allocate(sizeof(grPortal))) grPortal(context->allocator));
+        port->context = context;
+        port->name = grString(context->allocator, name);
+        port->id = id;
+        context->portalStack.push_back(port);
+        return id;
+    }
+
+    grStatus grEndPortal(grContext* context) {
+        if (context == nullptr)
+            return grStatus::NullArgument;
+        if (context->portalStack.empty())
+            return grStatus::Empty;
+
+        context->portalStack.pop_back();
+        return grStatus::Ok;
+    }
+
     grStatus grBeginFrame(grContext* context, float deltaTime) {
         if (context == nullptr)
             return grStatus::NullArgument;
 
-        context->draw.reset();
+        for (grPortal* port : context->portals) {
+            port->idStack.clear();
+            port->widgetStack.clear();
+            port->draw.reset();
+        }
+
+        context->activeId = context->activeIdNext;
+        context->activeIdNext = {};
 
         context->mousePosDelta = context->mousePos - context->mousePosLast;
         context->deltaTime = deltaTime;
@@ -50,6 +89,42 @@ inline namespace goober {
 
         context->mousePosLast = context->mousePos;
         context->mouseButtonsLast = context->mouseButtons;
+        return grStatus::Ok;
+    }
+
+    grId grGetId(grContext const* context, uint64_t hash) noexcept {
+        if (context == nullptr)
+            return static_cast<grId>(hash);
+        if (context->portalStack.empty())
+            return static_cast<grId>(hash);
+
+        grPortal* port = context->portalStack.back();
+        if (port->idStack.empty())
+            return grHashCombine(static_cast<std::uint64_t>(port->id), hash);
+
+        return static_cast<grId>(
+            grHashCombine(static_cast<std::uint64_t>(port->idStack.back()), hash));
+    }
+
+    grStatus grPushId(grContext* context, grId id) {
+        if (context == nullptr)
+            return grStatus::NullArgument;
+        if (context->portalStack.empty())
+            return grStatus::Empty;
+
+        context->portalStack.back()->idStack.push_back(id);
+        return grStatus::Ok;
+    }
+
+    grStatus grPopId(grContext* context) noexcept {
+        if (context == nullptr)
+            return grStatus::NullArgument;
+        if (context->portalStack.empty())
+            return grStatus::Empty;
+        if (context->portalStack.back()->idStack.empty())
+            return grStatus::Empty;
+
+        context->portalStack.back()->idStack.pop_back();
         return grStatus::Ok;
     }
 

@@ -16,13 +16,20 @@
 
 inline namespace goober {
     // ------------------------------------------------------
+    //  * forward declarations *
+    // ------------------------------------------------------
+
+    struct grContext;
+    struct grPortal;
+
+    // ------------------------------------------------------
     //  * grAllocator memory allocation handler *
     // ------------------------------------------------------
 
     /// @brief Allocator wrapper for Goober
     struct grAllocator {
         using Allocate = void* (*)(std::size_t sizeInBytes, void* userData);
-        using Deallocate = void (*)(void* memory, std::size_t sizeInBytes, void* userData);
+        using Deallocate = void (*)(void* memory, std::size_t sizeInBytes, void* userData) noexcept;
 
         GOOBER_API grAllocator() noexcept;
         grAllocator(Allocate allocate, Deallocate deallocate, void* data = nullptr) noexcept
@@ -38,7 +45,7 @@ inline namespace goober {
         /// @brief Deallocates memory allocated via this allocator.
         /// @param memory Memory to deallocate. May be nullptr.
         /// @param bytes Size in bytes of memory to deallocate.
-        void deallocate(void* memory, std::size_t bytes) const {
+        void deallocate(void* memory, std::size_t bytes) const noexcept {
             _deallocate(memory, bytes, _userData);
         }
 
@@ -167,6 +174,8 @@ inline namespace goober {
         reference back() noexcept { return *(_sentinel - 1); }
         const_reference back() const noexcept { return *(_sentinel - 1); }
 
+        value_type pop_back() noexcept { return *--_sentinel; }
+
         reference operator[](size_type index) noexcept { return _data[index]; }
         const_reference operator[](size_type index) const noexcept { return _data[index]; }
 
@@ -191,6 +200,71 @@ inline namespace goober {
         T* _data = nullptr;
         T* _sentinel = nullptr;
         T* _reserved = nullptr;
+        grAllocator const* _allocator = nullptr;
+    };
+
+    // ------------------------------------------------------
+    //  * string helpers *
+    // ------------------------------------------------------
+
+    /// @brief Non-owning reference to a view of characters; not NUL-terminated.
+    struct grStringView {
+        using value_type = char const;
+        using pointer = char const*;
+        using size_type = std::size_t;
+
+        pointer data = nullptr;
+        pointer sentinel = nullptr;
+
+        grStringView() = default;
+        grStringView(std::nullptr_t) = delete;
+        /*implicit*/ grStringView(char const* zstr) noexcept
+            : data(zstr)
+            , sentinel(data + std::strlen(data)) {}
+        template <std::size_t N>
+        /*implicit*/ constexpr grStringView(char const (&nstr)[N]) noexcept
+            : data(nstr)
+            , sentinel(nstr + (N - 1)) {}
+
+        constexpr bool empty() const noexcept { return data == sentinel; }
+        constexpr size_type size() const noexcept { return sentinel - data; }
+
+        constexpr pointer begin() const noexcept { return data; }
+        constexpr pointer end() const noexcept { return sentinel; }
+    };
+
+    /// @brief Owning container for an immutable string.
+    struct grString {
+        using value_type = char const;
+        using pointer = char const*;
+        using size_type = std::size_t;
+
+        grString() = default;
+        grString(grAllocator const* alloc, std::nullptr_t) = delete;
+        explicit grString(grAllocator const& alloc, pointer zstr)
+            : grString(alloc, zstr, std::strlen(zstr)) {}
+        explicit grString(grAllocator const& alloc, grStringView str)
+            : grString(alloc, str.data, str.size()) {}
+        inline explicit grString(grAllocator const& alloc, pointer nstr, size_type size);
+        inline ~grString();
+
+        constexpr grString(grString&& rhs) noexcept
+            : _data(rhs._data)
+            , _sentinel(rhs._sentinel)
+            , _allocator(rhs._allocator) {
+            rhs._data = rhs._sentinel = nullptr;
+        }
+        inline grString& operator=(grString&& rhs) noexcept;
+
+        bool empty() const noexcept { return _data == _sentinel; }
+        size_type size() const noexcept { return _sentinel - _data; }
+
+        pointer begin() const noexcept { return _data; }
+        pointer end() const noexcept { return _sentinel; }
+
+    private:
+        char* _data = nullptr;
+        char* _sentinel = nullptr;
         grAllocator const* _allocator = nullptr;
     };
 
@@ -304,7 +378,7 @@ inline namespace goober {
     // ------------------------------------------------------
 
     /// @brief Unique identifier used by goober.
-    enum class grId : std::uint64_t {};
+    using grId = std::uint64_t;
 
     // ------------------------------------------------------
     //  * grContext core goober state *
@@ -320,10 +394,41 @@ inline namespace goober {
         grButtonMask mouseButtonsLast{};
         grButtonMask mouseButtons{};
         float deltaTime = 0.f;
+        grPortal* root = nullptr;
+        grArray<grPortal*> portalStack;
+        grArray<grPortal*> portals;
+        grId activeId = {};
+        grId activeIdNext = {};
 
+        grContext(grAllocator const& alloc)
+            : allocator(alloc)
+            , portalStack(alloc)
+            , portals(alloc) {}
+    };
+
+    // ------------------------------------------------------
+    //  * widget internal state *
+    // ------------------------------------------------------
+
+    struct grWidget {
+        grVec4 aabb;
+        grColor rgba;
+    };
+
+    // ------------------------------------------------------
+    //  * grPortal widget and state container *
+    // ------------------------------------------------------
+
+    struct grPortal {
+        grContext* context = nullptr;
+        grPortal* parent = nullptr;
+        grString name;
+        grId id = {};
+        grArray<grId> idStack;
+        grArray<grWidget> widgetStack;
         grDrawList draw;
 
-        grContext(grAllocator const& alloc) : allocator(alloc), draw(alloc) {}
+        grPortal(grAllocator const& alloc) : idStack(alloc), widgetStack(alloc), draw(alloc) {}
     };
 
     // ------------------------------------------------------
@@ -341,6 +446,28 @@ inline namespace goober {
         return state;
     }
 
+    /// @brief FNV1a hash function for strings.
+    /// @param str String to hash.
+    /// @return 64-bit hash of string.
+    constexpr std::uint64_t grHashFnv1a(grStringView str) noexcept {
+        return grHashFnv1a(str.data, str.size());
+    }
+
+    /// @brief Combines two hash values.
+    /// @param seed First hash value.
+    /// @param hash Second hash value.
+    /// @return A new hash.
+    constexpr std::uint64_t grHashCombine(std::uint64_t seed, std::uint64_t hash) noexcept {
+        // from CityHash
+        constexpr std::uint64_t mul = 0x9ddfea08eb382d69ull;
+        std::uint64_t a = (hash ^ seed) * mul;
+        a ^= a >> 47;
+        std::uint64_t b = (seed ^ a) * mul;
+        b ^= b >> 47;
+        seed = b * mul;
+        return seed;
+    }
+
     /// @brief Tests if a point is contained within a bounding box.
     /// @param aabb Bounding box (x1, y1, x2, y2)
     /// @param pos Position to test
@@ -356,8 +483,22 @@ inline namespace goober {
     GOOBER_API grResult<grContext*> grCreateContext(grAllocator& allocator);
     GOOBER_API grStatus grDestroyContext(grContext* context);
 
+    GOOBER_API grResult<grId> grBeginPortal(grContext* context, grStringView name);
+    GOOBER_API grStatus grEndPortal(grContext* context);
+
     GOOBER_API grStatus grBeginFrame(grContext* context, float deltaTime);
     GOOBER_API grStatus grEndFrame(grContext* context);
+
+    GOOBER_API grId grGetId(grContext const* context, uint64_t hash) noexcept;
+    inline grId grGetId(grContext const* context, void const* ptr) noexcept {
+        return grGetId(context, grHashFnv1a(reinterpret_cast<char const*>(&ptr), sizeof(ptr)));
+    }
+    inline grId grGetId(grContext const* context, grStringView str) noexcept {
+        return grGetId(context, grHashFnv1a(str));
+    }
+
+    GOOBER_API grStatus grPushId(grContext* context, grId id);
+    GOOBER_API grStatus grPopId(grContext* context) noexcept;
 
     GOOBER_API bool grIsMouseDown(grContext const* context, grButtonMask button) noexcept;
     GOOBER_API bool grIsMousePressed(grContext const* context, grButtonMask button) noexcept;
@@ -489,6 +630,37 @@ inline namespace goober {
                 std::memcpy(_data, tmp._data, size * sizeof(T));
             }
         }
+    }
+
+    // ------------------------------------------------------
+    //  * grString implementation *
+    // ------------------------------------------------------
+
+    grString::grString(grAllocator const& alloc, pointer nstr, size_type size)
+        : _data(static_cast<char*>(alloc.allocate(size + 1)))
+        , _sentinel(_data + size)
+        , _allocator(&alloc) {
+        std::memcpy(_data, nstr, size);
+        _data[size] = '\0';
+    }
+
+    grString::~grString() {
+        if (_data != nullptr) {
+            _allocator->deallocate(_data, _sentinel - _data + 1);
+        }
+    }
+
+    grString& grString::operator=(grString&& rhs) noexcept {
+        if (_data != nullptr && _data != rhs._data) {
+            _allocator->deallocate(_data, _sentinel - _data + 1);
+        }
+
+        _data = rhs._data;
+        _sentinel = rhs._sentinel;
+        _allocator = rhs._allocator;
+
+        rhs._data = rhs._sentinel = nullptr;
+        return *this;
     }
 
 } // namespace goober
