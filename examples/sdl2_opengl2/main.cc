@@ -3,6 +3,7 @@
 // See LICENSE.md for more details.
 
 #include "goober/core.hh"
+#include "goober/draw.hh"
 #include "goober/font.hh"
 #include "goober/widgets.hh"
 
@@ -165,11 +166,11 @@ int main(int argc, char* argv[]) {
 
         grBeginPortal(ctx, "Test");
         grPortal* port = ctx->portalStack.back();
-        port->draw.drawText(font, {40, 40}, grColors::white, "hello!");
+        port->draw->drawText(font, {40, 40}, grColors::white, "hello!");
         if (grButton(ctx, "exit", {240, 240, 300, 280}, grColors::darkgrey))
             running = false;
 
-        port->draw.drawRect({{400, 300}, {500, 400}}, {{0, 1}, {1, 0}}, grColors::white);
+        port->draw->drawRect({{400, 300}, {500, 400}}, {{0, 1}, {1, 0}}, grColors::white);
 
         grEndPortal(ctx);
 
@@ -204,7 +205,7 @@ int main(int argc, char* argv[]) {
         glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_ALPHA);
 
         for (grPortal* port : ctx->portals) {
-            grDrawList const& draw = port->draw;
+            grDrawList const& draw = *port->draw;
 
             glBindBuffer(GL_ARRAY_BUFFER, vbo);
             glBufferSubData(

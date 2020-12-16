@@ -3,6 +3,7 @@
 // See LICENSE.md for more details.
 
 #include "goober/core.hh"
+#include "goober/draw.hh"
 
 inline namespace goober {
 
@@ -25,9 +26,9 @@ inline namespace goober {
         if (active && grIsMouseDown(context, grButtonMask::Left))
             context->activeIdNext = id;
 
-        port->draw.drawRect({{aabb.x, aabb.y}, {aabb.z, aabb.w}}, rgba);
+        port->draw->drawRect({{aabb.x, aabb.y}, {aabb.z, aabb.w}}, rgba);
         grColor color = active ? grColors::red : over ? grColors::yellow : grColors::grey;
-        port->draw.drawRect({{aabb.x + 2, aabb.y + 2}, {aabb.z - 2, aabb.w - 2}}, color);
+        port->draw->drawRect({{aabb.x + 2, aabb.y + 2}, {aabb.z - 2, aabb.w - 2}}, color);
 
         bool const clicked = over && active && grIsMouseReleased(context, grButtonMask::Left);
         if (clicked)

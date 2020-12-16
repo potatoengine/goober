@@ -29,6 +29,7 @@ inline namespace goober {
     struct grContext;
     struct grFont;
     struct grPortal;
+    struct grDrawList;
 
     // ------------------------------------------------------
     //  * component-wise vectors *
@@ -126,6 +127,34 @@ inline namespace goober {
         static constexpr grColor magenta{255, 0, 255, 255};
         static constexpr grColor cyan{0, 255, 255, 255};
     } // namespace grColors
+
+    // ------------------------------------------------------
+    //  * grBoxed dynamic memory *
+    // ------------------------------------------------------
+
+    /// @brief Manages lifetime of a heap-allocated object.
+    /// @tparam T Type of object.
+    template <typename T>
+    struct grBoxed {
+        grBoxed() = default;
+        explicit grBoxed(T* object) noexcept : _object(object) {}
+        ~grBoxed() { reset(); }
+
+        grBoxed(grBoxed const&) = delete;
+        grBoxed& operator=(grBoxed const&) = delete;
+
+        bool empty() const noexcept { return _object != nullptr; }
+        T* get() const noexcept { return _object; }
+
+        void reset();
+        void reset(T* object);
+
+        T* operator->() const noexcept { return _object; }
+        T& operator*() const noexcept { return *_object; }
+
+    private:
+        T* _object = nullptr;
+    };
 
     // ------------------------------------------------------
     //  * grArray dynamic array *
@@ -250,40 +279,6 @@ inline namespace goober {
     };
 
     // ------------------------------------------------------
-    //  * grDrawList drawing helper *
-    // ------------------------------------------------------
-
-    struct grDrawList {
-        using Index = std::uint16_t;
-        using Offset = std::uint32_t;
-
-        struct Vertex {
-            grVec2 pos;
-            grVec2 uv;
-            grColor rgba;
-        };
-
-        struct Command {
-            Offset indexStart = 0;
-            Offset indexCount = 0;
-        };
-
-        grArray<Index> indices;
-        grArray<Vertex> vertices;
-        grArray<Command> commands;
-
-        GOOBER_API void drawRect(grRect rect, grColor color);
-        GOOBER_API void drawRect(grRect rect, grRect texCoord, grColor color);
-        GOOBER_API void drawText(grFont* font, grVec2 ul, grColor, grStringView text);
-
-        void reset() noexcept {
-            indices.clear();
-            vertices.clear();
-            commands.clear();
-        }
-    };
-
-    // ------------------------------------------------------
     //  * grStatus and grResult error handling *
     // ------------------------------------------------------
 
@@ -394,11 +389,11 @@ inline namespace goober {
     struct grPortal {
         grContext* context = nullptr;
         grPortal* parent = nullptr;
+        grBoxed<grDrawList> draw;
         grString name;
         grId id = {};
         grArray<grId> idStack;
         grArray<grWidget> widgetStack;
-        grDrawList draw;
     };
 
     // ------------------------------------------------------
@@ -477,6 +472,28 @@ inline namespace goober {
     GOOBER_API bool grIsMouseOver(grContext const* context, grVec4 area) noexcept;
     GOOBER_API bool grIsMouseEntering(grContext const* context, grVec4 area) noexcept;
     GOOBER_API bool grIsMouseLeaving(grContext const* context, grVec4 area) noexcept;
+
+    // ------------------------------------------------------
+    //  * grBoxed implementation *
+    // ------------------------------------------------------
+
+    template <typename T>
+    void grBoxed<T>::reset() {
+        if (_object != nullptr) {
+            _object->~T();
+            grFree(_object);
+            _object = nullptr;
+        }
+    }
+
+    template <typename T>
+    void grBoxed<T>::reset(T* object) {
+        if (_object != nullptr && _object != object) {
+            _object->~T();
+            grFree(_object);
+        }
+        _object = object;
+    }
 
     // ------------------------------------------------------
     //  * grArray implementation *

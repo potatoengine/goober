@@ -20,7 +20,10 @@ add_custom_command(
 add_library(goober_core)
 target_sources(goober_core PRIVATE
     include/goober/core.hh
+    include/goober/draw.hh
+    include/goober/font.hh
     src/core.cc
+    src/draw.cc
     src/font.cc
     ${goober_proggy_source}
 )

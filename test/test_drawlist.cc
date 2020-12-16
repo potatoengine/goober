@@ -3,7 +3,7 @@
 // See LICENSE.md for more details.
 
 #include "catch.hpp"
-#include "goober/core.hh"
+#include "goober/draw.hh"
 
 TEST_CASE("draw rect", "[draw]") {
     grDrawList draw;
