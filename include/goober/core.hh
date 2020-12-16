@@ -27,6 +27,7 @@ inline namespace goober {
     // ------------------------------------------------------
 
     struct grContext;
+    struct grFont;
     struct grPortal;
 
     // ------------------------------------------------------
@@ -78,6 +79,19 @@ inline namespace goober {
         constexpr friend bool operator!=(grVec4 l, grVec4 r) noexcept {
             return l.x != r.x || l.y != r.y || l.z != r.z || l.w != r.w;
         }
+    };
+
+    /// @brief Axis-aligned box
+    struct grRect {
+        grVec2 minimum;
+        grVec2 maximum;
+
+        grRect() = default;
+        constexpr grRect(grVec2 mini, grVec2 maxi) noexcept : minimum(mini), maximum(maxi) {}
+
+        const bool empty() const noexcept { return maximum.x > minimum.x && maximum.y > minimum.y; }
+        constexpr grVec2 size() const noexcept { return maximum - minimum; }
+        constexpr grVec2 center() const noexcept { return minimum + (maximum - minimum) * 0.5f; }
     };
 
     // ------------------------------------------------------
@@ -258,7 +272,9 @@ inline namespace goober {
         grArray<Vertex> vertices;
         grArray<Command> commands;
 
-        GOOBER_API void drawRect(grVec2 ul, grVec2 br, grColor color);
+        GOOBER_API void drawRect(grRect rect, grColor color);
+        GOOBER_API void drawRect(grRect rect, grRect texCoord, grColor color);
+        GOOBER_API void drawText(grFont* font, grVec2 ul, grColor, grStringView text);
 
         void reset() noexcept {
             indices.clear();
