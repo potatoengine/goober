@@ -57,7 +57,14 @@ namespace goober {
         assert(pix.y == 0);
         font->alpha.data[0] = 0xFF;
 
-        stbtt_PackFontRange(&packing, goober_proggy_data, 0, 12, 0, 255, packed.data());
+        stbtt_PackFontRange(
+            &packing,
+            goober_proggy_data,
+            0,
+            STBTT_POINT_SIZE(size),
+            0,
+            255,
+            packed.data());
 
         float const widthScalar = 1.f / font->alpha.width;
         float const heightScalar = 1.f / font->alpha.height;
@@ -65,10 +72,11 @@ namespace goober {
         font->glyphs.reserve(packed.size());
         for (int index = 0; index != 255; ++index) {
             stbtt_packedchar const& pchar = packed[index];
+            grRect const extent{{pchar.xoff, pchar.yoff}, {pchar.xoff2, pchar.yoff2}};
             grRect const uv{
                 {pchar.x0 * widthScalar, pchar.y0 * heightScalar},
                 {pchar.x1 * widthScalar, pchar.y1 * heightScalar}};
-            font->glyphs.push_back({index, {pchar.xadvance, 12}, uv});
+            font->glyphs.push_back({index, pchar.xadvance, extent, uv});
         }
 
         stbtt_PackEnd(&packing);
@@ -95,12 +103,12 @@ namespace goober {
         return grStatus::Ok;
     }
 
-    grGlyph const* grFontGetGlyph(grFont* font, int glyph) {
+    grGlyph const* grFontGetGlyph(grFont* font, int codepoint) {
         if (font == nullptr)
             return nullptr;
 
         for (grGlyph const& gly : font->glyphs) {
-            if (gly.glyph == glyph) {
+            if (gly.codepoint == codepoint) {
                 return &gly;
             }
         }

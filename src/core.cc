@@ -229,9 +229,12 @@ inline namespace goober {
 
             Command& cmd = commands.empty() ? commands.push_back({index, 0}) : commands.back();
 
-            drawRect({pos, pos + glyph->size}, glyph->texcoord, color);
+            drawRect(
+                {pos + glyph->extent.minimum, pos + glyph->extent.maximum},
+                glyph->texCoord,
+                color);
 
-            pos.x += glyph->size.x;
+            pos.x += glyph->xAdvance;
         }
     }
 

@@ -165,7 +165,7 @@ int main(int argc, char* argv[]) {
 
         grBeginPortal(ctx, "Test");
         grPortal* port = ctx->portalStack.back();
-        port->draw.drawText(font, {40, 40}, grColors::red, "hello!");
+        port->draw.drawText(font, {40, 40}, grColors::white, "hello!");
         if (grButton(ctx, "exit", {240, 240, 300, 280}, grColors::darkgrey))
             running = false;
 
@@ -176,7 +176,7 @@ int main(int argc, char* argv[]) {
         grEndFrame(ctx);
 
         glViewport(0, 0, width, height);
-        glClearColor(0.f, 0.3f, 0.6f, 0.f);
+        glClearColor(0.3f, 0.3f, 0.3f, 0.f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         if (grFontIsDirty(font)) {

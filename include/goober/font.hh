@@ -20,9 +20,10 @@ inline namespace goober {
     // ------------------------------------------------------
 
     struct grGlyph {
-        int glyph = -1;
-        grVec2 size;
-        grRect texcoord;
+        int codepoint = -1;
+        float xAdvance = 0.f;
+        grRect extent;
+        grRect texCoord;
     };
 
     struct grFontTex {
@@ -49,7 +50,7 @@ inline namespace goober {
     GOOBER_API grResult<grFont*> grCreateDefaultFont(grContext* context);
     GOOBER_API grStatus grDestroyFont(grFont* font);
 
-    GOOBER_API grGlyph const* grFontGetGlyph(grFont* font, int glyph);
+    GOOBER_API grGlyph const* grFontGetGlyph(grFont* font, int codepoint);
 
     GOOBER_API bool grFontIsDirty(grFont* font);
     GOOBER_API grResult<grFontTex*> grFontGetAlpha8(grFont* font);
