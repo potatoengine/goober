@@ -148,14 +148,14 @@ inline namespace goober {
         return !isDown && wasDown;
     }
 
-    bool grIsMouseOver(grContext const* context, grVec4 area) noexcept {
+    bool grIsMouseOver(grContext const* context, grRect area) noexcept {
         if (context == nullptr)
             return false;
 
         return grIsContained(area, context->mousePos);
     }
 
-    bool grIsMouseEntering(grContext const* context, grVec4 area) noexcept {
+    bool grIsMouseEntering(grContext const* context, grRect area) noexcept {
         if (context == nullptr)
             return false;
 
@@ -163,7 +163,7 @@ inline namespace goober {
             !grIsContained(area, context->mousePosLast);
     }
 
-    bool grIsMouseLeaving(grContext const* context, grVec4 area) noexcept {
+    bool grIsMouseLeaving(grContext const* context, grRect area) noexcept {
         if (context == nullptr)
             return false;
 

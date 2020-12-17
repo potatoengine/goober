@@ -95,6 +95,23 @@ namespace goober {
         return id;
     }
 
+    grStatus grDestroyFont(grContext* context, grFontId fontId) {
+        if (context == nullptr)
+            return grStatus::NullArgument;
+
+        for (grFont*& font : context->fonts) {
+            if (font->fontId == fontId) {
+                grFree(font->pixels.data);
+                font->~grFont();
+                grFree(font);
+                font = nullptr;
+                return grStatus::Ok;
+            }
+        }
+
+        return grStatus::InvalidId;
+    }
+
     grStatus grDestroyFont(grFont* font) {
         if (font == nullptr)
             return grStatus::NullArgument;
@@ -138,6 +155,24 @@ namespace goober {
             return nullptr;
 
         return grFontGetGlyph(grGetFont(context, fontId), codepoint);
+    }
+
+    grVec2 grFontMeasureText(grContext* context, grFontId fontId, grStringView text) {
+        grFont const* font = grGetFont(context, fontId);
+        if (font == nullptr)
+            return {};
+
+        grVec2 size{0, font->lineHeight};
+
+        for (char ch : text) {
+            grGlyph const* glyph = grFontGetGlyph(font, ch);
+            if (glyph == nullptr)
+                continue;
+
+            size.x += glyph->xAdvance;
+        }
+
+        return size;
     }
 
     bool grFontIsDirty(grContext* context, grFontId fontId) {

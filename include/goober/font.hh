@@ -10,12 +10,6 @@
 
 inline namespace goober {
     // ------------------------------------------------------
-    //  * forward declarations *
-    // ------------------------------------------------------
-
-    struct grFont;
-
-    // ------------------------------------------------------
     //  * fonts *
     // ------------------------------------------------------
 
@@ -41,6 +35,7 @@ inline namespace goober {
         grContext* context = nullptr;
         grFontTex pixels;
         float fontSize = 12.f;
+        float lineHeight = 12.f;
         bool dirty = true;
     };
 
@@ -55,6 +50,8 @@ inline namespace goober {
 
     GOOBER_API grGlyph const* grFontGetGlyph(grFont const* font, int codepoint);
     GOOBER_API grGlyph const* grFontGetGlyph(grContext* context, grFontId fontId, int codepoint);
+
+    GOOBER_API grVec2 grFontMeasureText(grContext* context, grFontId fontId, grStringView text);
 
     GOOBER_API bool grFontIsDirty(grContext* context, grFontId fontId);
     GOOBER_API grFontTex const* grFontGetAlpha8(grContext* context, grFontId fontId);

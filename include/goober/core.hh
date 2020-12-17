@@ -102,6 +102,9 @@ inline namespace goober {
 
         grRect() = default;
         constexpr grRect(grVec2 mini, grVec2 maxi) noexcept : minimum(mini), maximum(maxi) {}
+        constexpr grRect(float x0, float y0, float x1, float y1) noexcept
+            : minimum(x0, y0)
+            , maximum(x1, y1) {}
 
         const bool empty() const noexcept { return maximum.x > minimum.x && maximum.y > minimum.y; }
         constexpr grVec2 size() const noexcept { return maximum - minimum; }
@@ -299,6 +302,7 @@ inline namespace goober {
     enum class grStatus : std::uint16_t {
         Ok,
         NullArgument,
+        InvalidId,
         BadAlloc,
         Empty,
     };
@@ -446,8 +450,9 @@ inline namespace goober {
     /// @param aabb Bounding box (x1, y1, x2, y2)
     /// @param pos Position to test
     /// @return True if pos is contained within aabb.
-    constexpr bool grIsContained(grVec4 aabb, grVec2 pos) noexcept {
-        return pos.x >= aabb.x && pos.x < aabb.z && pos.y >= aabb.y && pos.y < aabb.w;
+    constexpr bool grIsContained(grRect aabb, grVec2 pos) noexcept {
+        return pos.x >= aabb.minimum.x && pos.x < aabb.maximum.x && pos.y >= aabb.minimum.y &&
+            pos.y < aabb.maximum.y;
     }
 
     // ------------------------------------------------------
@@ -478,9 +483,9 @@ inline namespace goober {
     GOOBER_API bool grIsMousePressed(grContext const* context, grButtonMask button) noexcept;
     GOOBER_API bool grIsMouseReleased(grContext const* context, grButtonMask button) noexcept;
 
-    GOOBER_API bool grIsMouseOver(grContext const* context, grVec4 area) noexcept;
-    GOOBER_API bool grIsMouseEntering(grContext const* context, grVec4 area) noexcept;
-    GOOBER_API bool grIsMouseLeaving(grContext const* context, grVec4 area) noexcept;
+    GOOBER_API bool grIsMouseOver(grContext const* context, grRect area) noexcept;
+    GOOBER_API bool grIsMouseEntering(grContext const* context, grRect area) noexcept;
+    GOOBER_API bool grIsMouseLeaving(grContext const* context, grRect area) noexcept;
 
     // ------------------------------------------------------
     //  * grBoxed implementation *

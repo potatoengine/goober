@@ -167,7 +167,7 @@ int main(int argc, char* argv[]) {
         grBeginPortal(ctx, "Test");
         grPortal* port = ctx->portalStack.back();
         port->draw->drawText(grGetFont(ctx, font), {40, 40}, grColors::white, "hello!");
-        if (grButton(ctx, "exit", {240, 240, 300, 280}, grColors::darkgrey))
+        if (grButton(ctx, "exit", {240, 240}, grColors::darkgrey))
             running = false;
 
         port->draw->drawRect({{400, 300}, {500, 400}}, {{0, 1}, {1, 0}}, grColors::white);

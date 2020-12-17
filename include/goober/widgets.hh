@@ -15,7 +15,7 @@ inline namespace goober {
     //  * standard goober widgets *
     // ------------------------------------------------------
 
-    GOOBER_API bool grButton(grContext* context, grStringView label, grVec4 aabb, grColor rgba);
+    GOOBER_API bool grButton(grContext* context, grStringView label, grVec2 pos, grColor rgba);
 
 } // namespace goober
 
