@@ -56,6 +56,7 @@ inline namespace goober {
             return;
 
         grVec2 pos = ul;
+        pos.y += font->lineHeight;
 
         for (char ch : text) {
             grGlyph const* glyph = grFontGetGlyph(font, ch);
