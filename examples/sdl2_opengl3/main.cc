@@ -201,7 +201,9 @@ int main(int argc, char* argv[]) {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, fontTexture);
         glBindSampler(0, fontSampler);
+        glEnable(GL_SCISSOR_TEST);
         glEnable(GL_BLEND);
+        glBlendEquation(GL_FUNC_ADD);
         glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_ALPHA);
 
         for (grPortal* port : ctx->portals) {
