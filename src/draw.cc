@@ -51,7 +51,7 @@ inline namespace goober {
         cmd.indexCount += 6;
     }
 
-    void grDrawList::drawText(grFont* font, grVec2 ul, grColor color, grStringView text) {
+    void grDrawList::drawText(grFont const* font, grVec2 ul, grColor color, grStringView text) {
         if (font == nullptr)
             return;
 

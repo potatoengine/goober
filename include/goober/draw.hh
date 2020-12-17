@@ -35,7 +35,7 @@ inline namespace goober {
 
         GOOBER_API void drawRect(grRect rect, grColor color);
         GOOBER_API void drawRect(grRect rect, grRect texCoord, grColor color);
-        GOOBER_API void drawText(grFont* font, grVec2 ul, grColor, grStringView text);
+        GOOBER_API void drawText(grFont const* font, grVec2 ul, grColor, grStringView text);
 
         void reset() noexcept {
             indices.clear();

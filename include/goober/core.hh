@@ -32,6 +32,19 @@ inline namespace goober {
     struct grDrawList;
 
     // ------------------------------------------------------
+    //  * miscellaneous public types *
+    // ------------------------------------------------------
+
+    /// @brief Unique identifier used by goober.
+    using grId = std::uint64_t;
+
+    /// @brief Texture id.
+    using grTextureId = std::uint64_t;
+
+    /// @brief Font id.
+    using grFontId = std::uint64_t;
+
+    // ------------------------------------------------------
     //  * component-wise vectors *
     // ------------------------------------------------------
 
@@ -300,6 +313,7 @@ inline namespace goober {
         grResult() = default;
         grResult(grStatus stat) : status(stat), value{} {}
         grResult(T&& val) : status(grStatus::Ok), value(static_cast<T&&>(val)) {}
+        grResult(T const& val) : status(grStatus::Ok), value(val) {}
 
         /// @brief Checks if the result is in a valid state.
         /// @return True if the status is Ok.
@@ -347,13 +361,6 @@ inline namespace goober {
     }
 
     // ------------------------------------------------------
-    //  * miscellaneous public types *
-    // ------------------------------------------------------
-
-    /// @brief Unique identifier used by goober.
-    using grId = std::uint64_t;
-
-    // ------------------------------------------------------
     //  * grContext core goober state *
     // ------------------------------------------------------
 
@@ -369,8 +376,10 @@ inline namespace goober {
         grPortal* root = nullptr;
         grArray<grPortal*> portalStack;
         grArray<grPortal*> portals;
+        grArray<grFont*> fonts;
         grId activeId = {};
         grId activeIdNext = {};
+        grFontId nextFontId = 1;
     };
 
     // ------------------------------------------------------

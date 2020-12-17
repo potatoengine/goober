@@ -34,12 +34,13 @@ inline namespace goober {
     };
 
     struct grFont {
+        grFontId fontId = 0;
+        grTextureId texture = 0;
         grString name;
-        void* texture = nullptr;
         grArray<grGlyph> glyphs;
         grContext* context = nullptr;
-        grFontTex alpha;
-        grFontTex rgba;
+        grFontTex pixels;
+        float fontSize = 12.f;
         bool dirty = true;
     };
 
@@ -47,14 +48,17 @@ inline namespace goober {
     //  * core public interfaces *
     // ------------------------------------------------------
 
-    GOOBER_API grResult<grFont*> grCreateDefaultFont(grContext* context);
-    GOOBER_API grStatus grDestroyFont(grFont* font);
+    GOOBER_API grResult<grFontId> grCreateDefaultFont(grContext* context);
+    GOOBER_API grStatus grDestroyFont(grContext* context, grFontId fontId);
 
-    GOOBER_API grGlyph const* grFontGetGlyph(grFont* font, int codepoint);
+    GOOBER_API grFont const* grGetFont(grContext* context, grFontId fontId);
 
-    GOOBER_API bool grFontIsDirty(grFont* font);
-    GOOBER_API grResult<grFontTex*> grFontGetAlpha8(grFont* font);
-    GOOBER_API grResult<grFontTex*> grFontGetRGBA32(grFont* font);
+    GOOBER_API grGlyph const* grFontGetGlyph(grFont const* font, int codepoint);
+    GOOBER_API grGlyph const* grFontGetGlyph(grContext* context, grFontId fontId, int codepoint);
+
+    GOOBER_API bool grFontIsDirty(grContext* context, grFontId fontId);
+    GOOBER_API grFontTex const* grFontGetAlpha8(grContext* context, grFontId fontId);
+    GOOBER_API grFontTex const* grFontGetRGBA32(grContext* context, grFontId fontId);
 
 } // namespace goober
 

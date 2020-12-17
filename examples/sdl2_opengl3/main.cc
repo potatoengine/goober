@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
 
         grBeginPortal(ctx, "Test");
         grPortal* port = ctx->portalStack.back();
-        port->draw->drawText(font, {40, 40}, grColors::white, "hello!");
+        port->draw->drawText(grGetFont(ctx, font), {40, 40}, grColors::white, "hello!");
         if (grButton(ctx, "exit", {240, 240, 300, 280}, grColors::darkgrey))
             running = false;
 
@@ -180,19 +180,20 @@ int main(int argc, char* argv[]) {
         glClearColor(0.3f, 0.3f, 0.3f, 0.f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        if (grFontIsDirty(font)) {
-            auto [rs, alphaData] = grFontGetAlpha8(font);
+        if (grFontIsDirty(ctx, font)) {
+            auto const* pixels = grFontGetAlpha8(ctx, font);
             glBindTexture(GL_TEXTURE_2D, fontTexture);
+            GLenum const format = pixels->bpp == 8 ? GL_RED : GL_RGBA;
             glTexImage2D(
                 GL_TEXTURE_2D,
                 0,
-                GL_RED,
-                alphaData->width,
-                alphaData->height,
+                format,
+                pixels->width,
+                pixels->height,
                 0,
-                GL_RED,
+                format,
                 GL_UNSIGNED_BYTE,
-                alphaData->data);
+                pixels->data);
         }
 
         glBindVertexArray(vao);
