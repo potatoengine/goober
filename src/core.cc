@@ -32,19 +32,26 @@ inline namespace goober {
 
         grId id = grHashFnv1a(name);
 
-        for (grPortal* port : context->portals) {
-            if (port->id == id) {
-                context->portalStack.push_back(port);
-                return id;
+        grPortal* port = nullptr;
+
+        for (grPortal* sportal : context->portals) {
+            if (sportal->id == id) {
+                port = sportal;
+                break;
             }
         }
 
-        grPortal* port = context->portals.push_back(new (grAlloc(sizeof(grPortal))) grPortal);
-        port->context = context;
-        port->name = grString(name);
-        port->id = id;
-        port->draw.reset(new (grAlloc(sizeof(grDrawList))) grDrawList());
+        if (port == nullptr) {
+            port = context->portals.push_back(new (grAlloc(sizeof(grPortal))) grPortal);
+            port->name = grString(name);
+            port->id = id;
+            port->draw.reset(new (grAlloc(sizeof(grDrawList))) grDrawList());
+        }
+
         context->portalStack.push_back(port);
+        context->currentPortal = port;
+        context->currentDrawList = port->draw.get();
+
         return id;
     }
 
@@ -55,7 +62,24 @@ inline namespace goober {
             return grStatus::Empty;
 
         context->portalStack.pop_back();
+        context->currentPortal =
+            context->portalStack.empty() ? nullptr : context->portalStack.back();
+        context->currentDrawList =
+            context->currentPortal != nullptr ? context->currentPortal->draw.get() : nullptr;
+
         return grStatus::Ok;
+    }
+
+    grPortal* grCurrentPortal(grContext* context) {
+        if (context == nullptr)
+            return nullptr;
+        return context->currentPortal;
+    }
+
+    grDrawList* grCurrentDrawList(grContext* context) {
+        if (context == nullptr)
+            return nullptr;
+        return context->currentDrawList;
     }
 
     grStatus grBeginFrame(grContext* context, float deltaTime) {
@@ -64,7 +88,6 @@ inline namespace goober {
 
         for (grPortal* port : context->portals) {
             port->idStack.clear();
-            port->widgetStack.clear();
             port->draw->reset();
         }
 
@@ -82,6 +105,9 @@ inline namespace goober {
 
         context->mousePosLast = context->mousePos;
         context->mouseButtonsLast = context->mouseButtons;
+
+        context->currentPortal = nullptr;
+
         return grStatus::Ok;
     }
 

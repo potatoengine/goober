@@ -51,11 +51,10 @@ inline namespace goober {
         cmd.indexCount += 6;
     }
 
-    void grDrawList::drawText(grFont const* font, grVec2 ul, grColor color, grStringView text) {
+    void grDrawList::drawText(grFont const* font, grVec2 pos, grColor color, grStringView text) {
         if (font == nullptr)
             return;
 
-        grVec2 pos = ul;
         pos.y += font->lineHeight;
 
         for (char ch : text) {

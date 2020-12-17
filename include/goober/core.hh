@@ -383,16 +383,9 @@ inline namespace goober {
         grArray<grFont*> fonts;
         grId activeId = {};
         grId activeIdNext = {};
+        grPortal* currentPortal = nullptr;
+        grDrawList* currentDrawList = nullptr;
         grFontId nextFontId = 1;
-    };
-
-    // ------------------------------------------------------
-    //  * widget internal state *
-    // ------------------------------------------------------
-
-    struct grWidget {
-        grVec4 aabb;
-        grColor rgba;
     };
 
     // ------------------------------------------------------
@@ -400,13 +393,10 @@ inline namespace goober {
     // ------------------------------------------------------
 
     struct grPortal {
-        grContext* context = nullptr;
-        grPortal* parent = nullptr;
         grBoxed<grDrawList> draw;
         grString name;
         grId id = {};
         grArray<grId> idStack;
-        grArray<grWidget> widgetStack;
     };
 
     // ------------------------------------------------------
@@ -464,6 +454,9 @@ inline namespace goober {
 
     GOOBER_API grResult<grId> grBeginPortal(grContext* context, grStringView name);
     GOOBER_API grStatus grEndPortal(grContext* context);
+    GOOBER_API grPortal* grCurrentPortal(grContext* context);
+
+    GOOBER_API grDrawList* grCurrentDrawList(grContext* context);
 
     GOOBER_API grStatus grBeginFrame(grContext* context, float deltaTime);
     GOOBER_API grStatus grEndFrame(grContext* context);

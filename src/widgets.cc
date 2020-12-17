@@ -9,18 +9,16 @@
 inline namespace goober {
 
     bool grButton(grContext* context, grStringView label, grVec2 pos, grColor rgba) {
-        if (context == nullptr)
-            return false;
-        if (context->portalStack.empty())
+        grPortal* port = grCurrentPortal(context);
+        if (port == nullptr)
             return false;
 
-        grPortal* port = context->portalStack.back();
         grId const id = grGetId(context, label);
 
         grVec2 const labelSize = grFontMeasureText(context, 1, label);
         grRect const aabb(pos, pos + labelSize + grVec2(8, 8));
 
-        bool const over = grIsMouseOver(port->context, aabb);
+        bool const over = grIsMouseOver(context, aabb);
 
         bool const activated = over && grIsMousePressed(context, grButtonMask::Left);
         if (activated)
@@ -31,7 +29,9 @@ inline namespace goober {
             context->activeIdNext = id;
 
         port->draw->drawRect({pos, aabb.maximum}, rgba);
-        grColor color = active ? grColors::red : over ? grColors::yellow : grColors::grey;
+        grColor color = (active && over) ? grColors::red
+            : (active || over)           ? grColors::yellow
+                                         : grColors::grey;
         port->draw->drawRect(
             {{pos.x + 2, pos.y + 2}, {aabb.maximum.x - 2, aabb.maximum.y - 2}},
             color);
