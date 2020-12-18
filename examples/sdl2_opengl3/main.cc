@@ -129,6 +129,22 @@ int main(int argc, char* argv[]) {
     }
     GLint texLoc = glGetUniformLocation(program, "in_tex");
 
+    if (grFontAtlas const* atlas = grGetFontAtlasIfDirtyAlpha8(ctx)) {
+        glBindTexture(GL_TEXTURE_2D, fontTexture);
+        GLenum const format = atlas->bpp == 8 ? GL_RED : GL_RGBA;
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            format,
+            atlas->width,
+            atlas->height,
+            0,
+            format,
+            GL_UNSIGNED_BYTE,
+            atlas->data);
+        grFontAtlasBindTexture(ctx, fontTexture);
+    }
+
     bool running = true;
     while (running) {
         SDL_Event ev;
@@ -177,22 +193,6 @@ int main(int argc, char* argv[]) {
         glViewport(0, 0, width, height);
         glClearColor(0.3f, 0.3f, 0.3f, 0.f);
         glClear(GL_COLOR_BUFFER_BIT);
-
-        if (grFontAtlas const* atlas = grGetFontAtlasIfDirtyAlpha8(ctx)) {
-            glBindTexture(GL_TEXTURE_2D, fontTexture);
-            GLenum const format = atlas->bpp == 8 ? GL_RED : GL_RGBA;
-            glTexImage2D(
-                GL_TEXTURE_2D,
-                0,
-                format,
-                atlas->width,
-                atlas->height,
-                0,
-                format,
-                GL_UNSIGNED_BYTE,
-                atlas->data);
-            grFontAtlasBindTexture(ctx, fontTexture);
-        }
 
         glBindVertexArray(vao);
         glUseProgram(program);
