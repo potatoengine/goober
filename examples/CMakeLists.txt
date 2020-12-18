@@ -1,1 +1,1 @@
-add_subdirectory(sdl2_opengl2)
+add_subdirectory(sdl2_opengl3)

@@ -67,6 +67,9 @@ IncludeCategories:
   - Regex: '^".*"'
     Priority: 0
     SortPriority: 20
+  - Regex: 'GL/glew'
+    Priority: 100
+    SortPriority: 90
   - Regex: 'GL/'
     Priority: 100
     SortPriority: 100

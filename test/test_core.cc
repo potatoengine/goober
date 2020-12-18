@@ -31,7 +31,7 @@ TEST_CASE("fnv1a", "[core][hash]") {
 }
 
 TEST_CASE("grIsContained", "[core][math]") {
-    static constexpr grVec4 aabb = {10, 10, 20, 20};
+    static constexpr grRect aabb = {10, 10, 20, 20};
 
     SECTION("contained") {
         // on the upper-left edge on one or both axes

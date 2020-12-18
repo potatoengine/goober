@@ -3,12 +3,12 @@
 // See LICENSE.md for more details.
 
 #include "catch.hpp"
-#include "goober/core.hh"
+#include "goober/draw.hh"
 
 TEST_CASE("draw rect", "[draw]") {
     grDrawList draw;
 
-    draw.drawRect({0, 0}, {10, 10}, grColors::white);
+    draw.drawRect({{0, 0}, {10, 10}}, grColors::white);
 
     REQUIRE(draw.vertices.size() == 4);
     REQUIRE(draw.indices.size() == 6);

@@ -3,6 +3,8 @@
 // See LICENSE.md for more details.
 
 #include "goober/core.hh"
+#include "goober/draw.hh"
+#include "goober/font.hh"
 
 inline namespace goober {
 
@@ -11,12 +13,17 @@ inline namespace goober {
         if (context == nullptr)
             return grStatus::BadAlloc;
 
+        context->fontAtlas = new (grAlloc(sizeof(grFontAtlas))) grFontAtlas;
+
         return context;
     }
 
     grStatus grDestroyContext(grContext* context) {
         if (context == nullptr)
             return grStatus::NullArgument;
+
+        context->fontAtlas->~grFontAtlas();
+        grFree(context->fontAtlas);
 
         context->~grContext();
         grFree(context);
@@ -30,18 +37,26 @@ inline namespace goober {
 
         grId id = grHashFnv1a(name);
 
-        for (grPortal* port : context->portals) {
-            if (port->id == id) {
-                context->portalStack.push_back(port);
-                return id;
+        grPortal* port = nullptr;
+
+        for (grPortal* sportal : context->portals) {
+            if (sportal->id == id) {
+                port = sportal;
+                break;
             }
         }
 
-        grPortal* port = context->portals.push_back(new (grAlloc(sizeof(grPortal))) grPortal);
-        port->context = context;
-        port->name = grString(name);
-        port->id = id;
+        if (port == nullptr) {
+            port = context->portals.push_back(new (grAlloc(sizeof(grPortal))) grPortal);
+            port->name = grString(name);
+            port->id = id;
+            port->draw.reset(new (grAlloc(sizeof(grDrawList))) grDrawList());
+        }
+
         context->portalStack.push_back(port);
+        context->currentPortal = port;
+        context->currentDrawList = port->draw.get();
+
         return id;
     }
 
@@ -52,7 +67,24 @@ inline namespace goober {
             return grStatus::Empty;
 
         context->portalStack.pop_back();
+        context->currentPortal =
+            context->portalStack.empty() ? nullptr : context->portalStack.back();
+        context->currentDrawList =
+            context->currentPortal != nullptr ? context->currentPortal->draw.get() : nullptr;
+
         return grStatus::Ok;
+    }
+
+    grPortal* grCurrentPortal(grContext* context) {
+        if (context == nullptr)
+            return nullptr;
+        return context->currentPortal;
+    }
+
+    grDrawList* grCurrentDrawList(grContext* context) {
+        if (context == nullptr)
+            return nullptr;
+        return context->currentDrawList;
     }
 
     grStatus grBeginFrame(grContext* context, float deltaTime) {
@@ -61,8 +93,7 @@ inline namespace goober {
 
         for (grPortal* port : context->portals) {
             port->idStack.clear();
-            port->widgetStack.clear();
-            port->draw.reset();
+            port->draw->reset();
         }
 
         context->activeId = context->activeIdNext;
@@ -79,6 +110,9 @@ inline namespace goober {
 
         context->mousePosLast = context->mousePos;
         context->mouseButtonsLast = context->mouseButtons;
+
+        context->currentPortal = nullptr;
+
         return grStatus::Ok;
     }
 
@@ -145,14 +179,14 @@ inline namespace goober {
         return !isDown && wasDown;
     }
 
-    bool grIsMouseOver(grContext const* context, grVec4 area) noexcept {
+    bool grIsMouseOver(grContext const* context, grRect area) noexcept {
         if (context == nullptr)
             return false;
 
         return grIsContained(area, context->mousePos);
     }
 
-    bool grIsMouseEntering(grContext const* context, grVec4 area) noexcept {
+    bool grIsMouseEntering(grContext const* context, grRect area) noexcept {
         if (context == nullptr)
             return false;
 
@@ -160,33 +194,12 @@ inline namespace goober {
             !grIsContained(area, context->mousePosLast);
     }
 
-    bool grIsMouseLeaving(grContext const* context, grVec4 area) noexcept {
+    bool grIsMouseLeaving(grContext const* context, grRect area) noexcept {
         if (context == nullptr)
             return false;
 
         return !grIsContained(area, context->mousePos) &&
             grIsContained(area, context->mousePosLast);
-    }
-
-    void grDrawList::drawRect(grVec2 ul, grVec2 br, grColor color) {
-        Offset const vertex = static_cast<Offset>(vertices.size());
-        Offset const index = static_cast<Offset>(indices.size());
-
-        Command& cmd = commands.empty() ? commands.push_back({index, 0}) : commands.back();
-
-        vertices.push_back({ul, {}, color});
-        vertices.push_back({{br.x, ul.y}, {}, color});
-        vertices.push_back({br, {}, color});
-        vertices.push_back({{ul.x, br.y}, {}, color});
-
-        indices.push_back(vertex);
-        indices.push_back(vertex + 1);
-        indices.push_back(vertex + 2);
-        indices.push_back(vertex + 2);
-        indices.push_back(vertex + 3);
-        indices.push_back(vertex + 0);
-
-        cmd.indexCount += 6;
     }
 
 } // namespace goober

@@ -27,7 +27,23 @@ inline namespace goober {
     // ------------------------------------------------------
 
     struct grContext;
+    struct grFont;
+    struct grFontAtlas;
     struct grPortal;
+    struct grDrawList;
+
+    // ------------------------------------------------------
+    //  * miscellaneous public types *
+    // ------------------------------------------------------
+
+    /// @brief Unique identifier used by goober.
+    using grId = std::uint64_t;
+
+    /// @brief Texture id.
+    using grTextureId = std::uint64_t;
+
+    /// @brief Font id.
+    using grFontId = std::uint64_t;
 
     // ------------------------------------------------------
     //  * component-wise vectors *
@@ -80,6 +96,22 @@ inline namespace goober {
         }
     };
 
+    /// @brief Axis-aligned box
+    struct grRect {
+        grVec2 minimum;
+        grVec2 maximum;
+
+        grRect() = default;
+        constexpr grRect(grVec2 mini, grVec2 maxi) noexcept : minimum(mini), maximum(maxi) {}
+        constexpr grRect(float x0, float y0, float x1, float y1) noexcept
+            : minimum(x0, y0)
+            , maximum(x1, y1) {}
+
+        const bool empty() const noexcept { return maximum.x > minimum.x && maximum.y > minimum.y; }
+        constexpr grVec2 size() const noexcept { return maximum - minimum; }
+        constexpr grVec2 center() const noexcept { return minimum + (maximum - minimum) * 0.5f; }
+    };
+
     // ------------------------------------------------------
     //  * RGBA colors *
     // ------------------------------------------------------
@@ -112,6 +144,34 @@ inline namespace goober {
         static constexpr grColor magenta{255, 0, 255, 255};
         static constexpr grColor cyan{0, 255, 255, 255};
     } // namespace grColors
+
+    // ------------------------------------------------------
+    //  * grBoxed dynamic memory *
+    // ------------------------------------------------------
+
+    /// @brief Manages lifetime of a heap-allocated object.
+    /// @tparam T Type of object.
+    template <typename T>
+    struct grBoxed {
+        grBoxed() = default;
+        explicit grBoxed(T* object) noexcept : _object(object) {}
+        ~grBoxed() { reset(); }
+
+        grBoxed(grBoxed const&) = delete;
+        grBoxed& operator=(grBoxed const&) = delete;
+
+        bool empty() const noexcept { return _object != nullptr; }
+        T* get() const noexcept { return _object; }
+
+        void reset();
+        void reset(T* object);
+
+        T* operator->() const noexcept { return _object; }
+        T& operator*() const noexcept { return *_object; }
+
+    private:
+        T* _object = nullptr;
+    };
 
     // ------------------------------------------------------
     //  * grArray dynamic array *
@@ -236,38 +296,6 @@ inline namespace goober {
     };
 
     // ------------------------------------------------------
-    //  * grDrawList drawing helper *
-    // ------------------------------------------------------
-
-    struct grDrawList {
-        using Index = std::uint16_t;
-        using Offset = std::uint32_t;
-
-        struct Vertex {
-            grVec2 pos;
-            grVec2 uv;
-            grColor rgba;
-        };
-
-        struct Command {
-            Offset indexStart = 0;
-            Offset indexCount = 0;
-        };
-
-        grArray<Index> indices;
-        grArray<Vertex> vertices;
-        grArray<Command> commands;
-
-        GOOBER_API void drawRect(grVec2 ul, grVec2 br, grColor color);
-
-        void reset() noexcept {
-            indices.clear();
-            vertices.clear();
-            commands.clear();
-        }
-    };
-
-    // ------------------------------------------------------
     //  * grStatus and grResult error handling *
     // ------------------------------------------------------
 
@@ -275,6 +303,7 @@ inline namespace goober {
     enum class grStatus : std::uint16_t {
         Ok,
         NullArgument,
+        InvalidId,
         BadAlloc,
         Empty,
     };
@@ -289,6 +318,7 @@ inline namespace goober {
         grResult() = default;
         grResult(grStatus stat) : status(stat), value{} {}
         grResult(T&& val) : status(grStatus::Ok), value(static_cast<T&&>(val)) {}
+        grResult(T const& val) : status(grStatus::Ok), value(val) {}
 
         /// @brief Checks if the result is in a valid state.
         /// @return True if the status is Ok.
@@ -336,13 +366,6 @@ inline namespace goober {
     }
 
     // ------------------------------------------------------
-    //  * miscellaneous public types *
-    // ------------------------------------------------------
-
-    /// @brief Unique identifier used by goober.
-    using grId = std::uint64_t;
-
-    // ------------------------------------------------------
     //  * grContext core goober state *
     // ------------------------------------------------------
 
@@ -358,17 +381,12 @@ inline namespace goober {
         grPortal* root = nullptr;
         grArray<grPortal*> portalStack;
         grArray<grPortal*> portals;
+        grArray<grFont*> fonts;
         grId activeId = {};
         grId activeIdNext = {};
-    };
-
-    // ------------------------------------------------------
-    //  * widget internal state *
-    // ------------------------------------------------------
-
-    struct grWidget {
-        grVec4 aabb;
-        grColor rgba;
+        grPortal* currentPortal = nullptr;
+        grDrawList* currentDrawList = nullptr;
+        grFontAtlas* fontAtlas = nullptr;
     };
 
     // ------------------------------------------------------
@@ -376,13 +394,10 @@ inline namespace goober {
     // ------------------------------------------------------
 
     struct grPortal {
-        grContext* context = nullptr;
-        grPortal* parent = nullptr;
+        grBoxed<grDrawList> draw;
         grString name;
         grId id = {};
         grArray<grId> idStack;
-        grArray<grWidget> widgetStack;
-        grDrawList draw;
     };
 
     // ------------------------------------------------------
@@ -426,8 +441,9 @@ inline namespace goober {
     /// @param aabb Bounding box (x1, y1, x2, y2)
     /// @param pos Position to test
     /// @return True if pos is contained within aabb.
-    constexpr bool grIsContained(grVec4 aabb, grVec2 pos) noexcept {
-        return pos.x >= aabb.x && pos.x < aabb.z && pos.y >= aabb.y && pos.y < aabb.w;
+    constexpr bool grIsContained(grRect aabb, grVec2 pos) noexcept {
+        return pos.x >= aabb.minimum.x && pos.x < aabb.maximum.x && pos.y >= aabb.minimum.y &&
+            pos.y < aabb.maximum.y;
     }
 
     // ------------------------------------------------------
@@ -439,6 +455,9 @@ inline namespace goober {
 
     GOOBER_API grResult<grId> grBeginPortal(grContext* context, grStringView name);
     GOOBER_API grStatus grEndPortal(grContext* context);
+    GOOBER_API grPortal* grCurrentPortal(grContext* context);
+
+    GOOBER_API grDrawList* grCurrentDrawList(grContext* context);
 
     GOOBER_API grStatus grBeginFrame(grContext* context, float deltaTime);
     GOOBER_API grStatus grEndFrame(grContext* context);
@@ -458,9 +477,31 @@ inline namespace goober {
     GOOBER_API bool grIsMousePressed(grContext const* context, grButtonMask button) noexcept;
     GOOBER_API bool grIsMouseReleased(grContext const* context, grButtonMask button) noexcept;
 
-    GOOBER_API bool grIsMouseOver(grContext const* context, grVec4 area) noexcept;
-    GOOBER_API bool grIsMouseEntering(grContext const* context, grVec4 area) noexcept;
-    GOOBER_API bool grIsMouseLeaving(grContext const* context, grVec4 area) noexcept;
+    GOOBER_API bool grIsMouseOver(grContext const* context, grRect area) noexcept;
+    GOOBER_API bool grIsMouseEntering(grContext const* context, grRect area) noexcept;
+    GOOBER_API bool grIsMouseLeaving(grContext const* context, grRect area) noexcept;
+
+    // ------------------------------------------------------
+    //  * grBoxed implementation *
+    // ------------------------------------------------------
+
+    template <typename T>
+    void grBoxed<T>::reset() {
+        if (_object != nullptr) {
+            _object->~T();
+            grFree(_object);
+            _object = nullptr;
+        }
+    }
+
+    template <typename T>
+    void grBoxed<T>::reset(T* object) {
+        if (_object != nullptr && _object != object) {
+            _object->~T();
+            grFree(_object);
+        }
+        _object = object;
+    }
 
     // ------------------------------------------------------
     //  * grArray implementation *
