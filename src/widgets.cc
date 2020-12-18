@@ -15,7 +15,7 @@ inline namespace goober {
 
         grId const id = grGetId(context, label);
 
-        grVec2 const labelSize = grFontMeasureText(context, 1, label);
+        grVec2 const labelSize = grFontMeasureText(context, 0, label);
         grRect const aabb(pos, pos + labelSize + grVec2(8, 8));
 
         bool const over = grIsMouseOver(context, aabb);
@@ -36,7 +36,7 @@ inline namespace goober {
             {{pos.x + 2, pos.y + 2}, {aabb.maximum.x - 2, aabb.maximum.y - 2}},
             color);
         port->draw->drawText(
-            grGetFont(context, 1),
+            grGetFont(context, 0),
             context->fontAtlas->texture,
             {pos.x + 4, pos.y + 4},
             rgba,
@@ -67,7 +67,7 @@ inline namespace goober {
         if (draw == nullptr)
             return;
 
-        grFont const* font = grGetFont(context, 1);
+        grFont const* font = grGetFont(context, 0);
         if (font == nullptr)
             return;
 

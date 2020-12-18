@@ -70,6 +70,10 @@ namespace goober {
 
             font->glyphs.clear();
             font->glyphs.reserve(packed.size());
+
+            font->glyphRanges.clear();
+            font->glyphRanges.push_back({0, 255, 0});
+
             for (int index = 0; index != 255; ++index) {
                 stbtt_packedchar const& pchar = packed[index];
                 grRect const extent{{pchar.xoff, pchar.yoff}, {pchar.xoff2, pchar.yoff2}};
@@ -87,36 +91,19 @@ namespace goober {
         if (context == nullptr)
             return grStatus::NullArgument;
 
+        grFontId const id = static_cast<grFontId>(context->fonts.size());
         grFont* font = context->fonts.push_back(new (grAlloc(sizeof(grFont))) grFont());
-        grFontId const id = font->fontId = context->nextFontId++;
+        font->fontId = id;
         context->fontAtlas->dirty = true;
         return id;
-    }
-
-    grStatus grDestroyFont(grContext* context, grFontId fontId) {
-        if (context == nullptr)
-            return grStatus::NullArgument;
-
-        for (grFont*& font : context->fonts) {
-            if (font->fontId == fontId) {
-                font->~grFont();
-                grFree(font);
-                font = nullptr;
-                context->fontAtlas->dirty = true;
-                return grStatus::Ok;
-            }
-        }
-
-        return grStatus::InvalidId;
     }
 
     static grFont* grGetFontMutable(grContext* context, grFontId fontId) {
         if (context == nullptr)
             return nullptr;
 
-        for (grFont* font : context->fonts)
-            if (font->fontId == fontId)
-                return font;
+        if (fontId >= 0 && fontId < static_cast<grFontId>(context->fonts.size()))
+            return context->fonts[fontId];
 
         return nullptr;
     }
@@ -125,15 +112,30 @@ namespace goober {
         return grGetFontMutable(context, fontId);
     }
 
+    grStatus grDestroyFont(grContext* context, grFontId fontId) {
+        if (context == nullptr)
+            return grStatus::NullArgument;
+
+        grFont* font = grGetFontMutable(context, fontId);
+        if (font == nullptr)
+            return grStatus::InvalidId;
+
+        font->~grFont();
+        grFree(font);
+        font = nullptr;
+        context->fontAtlas->dirty = true;
+        return grStatus::Ok;
+    }
+
     grGlyph const* grFontGetGlyph(grFont const* font, int codepoint) {
         if (font == nullptr)
             return nullptr;
 
-        for (grGlyph const& gly : font->glyphs) {
-            if (gly.codepoint == codepoint) {
-                return &gly;
-            }
+        for (grFontGlyphRange const& rng : font->glyphRanges) {
+            if (rng.codepointStart < codepoint && rng.codepointStart + rng.codepointCount)
+                return &font->glyphs[(codepoint - rng.codepointStart) + rng.glyphOffset];
         }
+
         return nullptr;
     }
 

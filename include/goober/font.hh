@@ -29,10 +29,17 @@ inline namespace goober {
         bool dirty = true;
     };
 
+    struct grFontGlyphRange {
+        int codepointStart = 0;
+        int codepointCount = 0;
+        int glyphOffset = 0;
+    };
+
     struct grFont {
         grFontId fontId = 0;
         grString name;
         grArray<grGlyph> glyphs;
+        grArray<grFontGlyphRange> glyphRanges;
         grContext* context = nullptr;
         float fontSize = 12.f;
         float lineHeight = 12.f;

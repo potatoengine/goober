@@ -387,7 +387,6 @@ inline namespace goober {
         grPortal* currentPortal = nullptr;
         grDrawList* currentDrawList = nullptr;
         grFontAtlas* fontAtlas = nullptr;
-        grFontId nextFontId = 1;
     };
 
     // ------------------------------------------------------
