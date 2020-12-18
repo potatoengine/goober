@@ -28,6 +28,7 @@ inline namespace goober {
 
     struct grContext;
     struct grFont;
+    struct grFontAtlas;
     struct grPortal;
     struct grDrawList;
 
@@ -385,6 +386,7 @@ inline namespace goober {
         grId activeIdNext = {};
         grPortal* currentPortal = nullptr;
         grDrawList* currentDrawList = nullptr;
+        grFontAtlas* fontAtlas = nullptr;
         grFontId nextFontId = 1;
     };
 

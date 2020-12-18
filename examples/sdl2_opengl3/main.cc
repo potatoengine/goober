@@ -165,12 +165,10 @@ int main(int argc, char* argv[]) {
         grBeginFrame(ctx, 0.f);
 
         grBeginPortal(ctx, "Test");
-        grDrawList* draw = grCurrentDrawList(ctx);
-        draw->drawText(grGetFont(ctx, font), {40, 40}, grColors::white, "hello!");
+        grText(ctx, "hello world!", {40, 40}, grColors::white);
         if (grButton(ctx, "exit", {240, 240}, grColors::darkgrey))
             running = false;
-
-        draw->drawRect({{400, 300}, {500, 400}}, {{0, 1}, {1, 0}}, grColors::white);
+        grImage(ctx, 0, {{400, 300}, {500, 400}}, {{0, 1}, {1, 0}}, grColors::white);
 
         grEndPortal(ctx);
 
@@ -180,27 +178,26 @@ int main(int argc, char* argv[]) {
         glClearColor(0.3f, 0.3f, 0.3f, 0.f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        if (grFontIsDirty(ctx, font)) {
-            auto const* pixels = grFontGetAlpha8(ctx, font);
+        if (grFontAtlas const* atlas = grGetFontAtlasIfDirtyAlpha8(ctx)) {
             glBindTexture(GL_TEXTURE_2D, fontTexture);
-            GLenum const format = pixels->bpp == 8 ? GL_RED : GL_RGBA;
+            GLenum const format = atlas->bpp == 8 ? GL_RED : GL_RGBA;
             glTexImage2D(
                 GL_TEXTURE_2D,
                 0,
                 format,
-                pixels->width,
-                pixels->height,
+                atlas->width,
+                atlas->height,
                 0,
                 format,
                 GL_UNSIGNED_BYTE,
-                pixels->data);
+                atlas->data);
+            grFontAtlasBindTexture(ctx, fontTexture);
         }
 
         glBindVertexArray(vao);
         glUseProgram(program);
         glUniform1i(texLoc, 0);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, fontTexture);
         glBindSampler(0, fontSampler);
         glEnable(GL_SCISSOR_TEST);
         glEnable(GL_BLEND);
@@ -225,6 +222,8 @@ int main(int argc, char* argv[]) {
                 draw.indices.data());
 
             for (grDrawList::Command const& cmd : draw.commands) {
+                glBindTexture(GL_TEXTURE_2D, cmd.textureId);
+                glBindSampler(0, fontSampler);
                 glDrawElements(
                     GL_TRIANGLES,
                     cmd.indexCount,

@@ -27,6 +27,7 @@ inline namespace goober {
         struct Command {
             Offset indexStart = 0;
             Offset indexCount = 0;
+            grTextureId textureId = 0;
         };
 
         grArray<Index> indices;
@@ -34,8 +35,17 @@ inline namespace goober {
         grArray<Command> commands;
 
         GOOBER_API void drawRect(grRect rect, grColor color);
-        GOOBER_API void drawRect(grRect rect, grRect texCoord, grColor color);
-        GOOBER_API void drawText(grFont const* font, grVec2 ul, grColor, grStringView text);
+        GOOBER_API void drawRect(
+            grTextureId textureId,
+            grRect rect,
+            grRect texCoord,
+            grColor color);
+        GOOBER_API void drawText(
+            grFont const* font,
+            grTextureId textureId,
+            grVec2 ul,
+            grColor,
+            grStringView text);
 
         void reset() noexcept {
             indices.clear();

@@ -20,23 +20,22 @@ inline namespace goober {
         grRect texCoord;
     };
 
-    struct grFontTex {
+    struct grFontAtlas {
         unsigned char* data = nullptr;
         unsigned int width = 0;
         unsigned int height = 0;
         unsigned int bpp = 0;
+        grTextureId texture = 0;
+        bool dirty = true;
     };
 
     struct grFont {
         grFontId fontId = 0;
-        grTextureId texture = 0;
         grString name;
         grArray<grGlyph> glyphs;
         grContext* context = nullptr;
-        grFontTex pixels;
         float fontSize = 12.f;
         float lineHeight = 12.f;
-        bool dirty = true;
     };
 
     // ------------------------------------------------------
@@ -53,9 +52,8 @@ inline namespace goober {
 
     GOOBER_API grVec2 grFontMeasureText(grContext* context, grFontId fontId, grStringView text);
 
-    GOOBER_API bool grFontIsDirty(grContext* context, grFontId fontId);
-    GOOBER_API grFontTex const* grFontGetAlpha8(grContext* context, grFontId fontId);
-    GOOBER_API grFontTex const* grFontGetRGBA32(grContext* context, grFontId fontId);
+    GOOBER_API grFontAtlas const* grGetFontAtlasIfDirtyAlpha8(grContext* context);
+    GOOBER_API void grFontAtlasBindTexture(grContext* context, grTextureId textureId);
 
 } // namespace goober
 

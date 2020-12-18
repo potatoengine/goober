@@ -16,6 +16,13 @@ inline namespace goober {
     // ------------------------------------------------------
 
     GOOBER_API bool grButton(grContext* context, grStringView label, grVec2 pos, grColor rgba);
+    GOOBER_API void grImage(
+        grContext* context,
+        grTextureId textureId,
+        grRect pos,
+        grRect texCoord,
+        grColor rgba);
+    GOOBER_API void grText(grContext* context, grStringView text, grVec2 pos, grColor rgba);
 
 } // namespace goober
 

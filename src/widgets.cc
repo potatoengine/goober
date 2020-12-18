@@ -35,13 +35,43 @@ inline namespace goober {
         port->draw->drawRect(
             {{pos.x + 2, pos.y + 2}, {aabb.maximum.x - 2, aabb.maximum.y - 2}},
             color);
-        port->draw->drawText(grGetFont(context, 1), {pos.x + 4, pos.y + 4}, rgba, label);
+        port->draw->drawText(
+            grGetFont(context, 1),
+            context->fontAtlas->texture,
+            {pos.x + 4, pos.y + 4},
+            rgba,
+            label);
 
         bool const clicked = over && active && grIsMouseReleased(context, grButtonMask::Left);
         if (clicked)
             context->activeId = {};
 
         return clicked;
+    }
+
+    void grImage(
+        grContext* context,
+        grTextureId textureId,
+        grRect pos,
+        grRect texCoord,
+        grColor rgba) {
+        grDrawList* draw = grCurrentDrawList(context);
+        if (draw == nullptr)
+            return;
+
+        draw->drawRect(textureId, pos, texCoord, rgba);
+    }
+
+    void grText(grContext* context, grStringView text, grVec2 pos, grColor rgba) {
+        grDrawList* draw = grCurrentDrawList(context);
+        if (draw == nullptr)
+            return;
+
+        grFont const* font = grGetFont(context, 1);
+        if (font == nullptr)
+            return;
+
+        draw->drawText(font, context->fontAtlas->texture, pos, rgba, text);
     }
 
 } // namespace goober

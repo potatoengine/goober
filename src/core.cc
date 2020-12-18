@@ -13,12 +13,17 @@ inline namespace goober {
         if (context == nullptr)
             return grStatus::BadAlloc;
 
+        context->fontAtlas = new (grAlloc(sizeof(grFontAtlas))) grFontAtlas;
+
         return context;
     }
 
     grStatus grDestroyContext(grContext* context) {
         if (context == nullptr)
             return grStatus::NullArgument;
+
+        context->fontAtlas->~grFontAtlas();
+        grFree(context->fontAtlas);
 
         context->~grContext();
         grFree(context);

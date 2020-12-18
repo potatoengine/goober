@@ -7,11 +7,30 @@
 
 inline namespace goober {
 
+    static grDrawList::Command& pushCommand(
+        grArray<grDrawList::Command>& commands,
+        grTextureId textureId) {
+        if (!commands.empty()) {
+            grDrawList::Command& cmd = commands.back();
+            if (cmd.indexCount == 0 || cmd.textureId == 0) {
+                cmd.textureId = textureId;
+                return cmd;
+            }
+
+            if (textureId == 0 || cmd.textureId == textureId)
+                return cmd;
+        }
+
+        grDrawList::Command& cmd = commands.push_back({});
+        cmd.textureId = textureId;
+        return cmd;
+    }
+
     void grDrawList::drawRect(grRect rect, grColor color) {
         Offset const vertex = static_cast<Offset>(vertices.size());
         Offset const index = static_cast<Offset>(indices.size());
 
-        Command& cmd = commands.empty() ? commands.push_back({index, 0}) : commands.back();
+        Command& cmd = pushCommand(commands, 0);
 
         vertices.push_back({rect.minimum, {}, color});
         vertices.push_back({{rect.maximum.x, rect.minimum.y}, {}, color});
@@ -28,11 +47,11 @@ inline namespace goober {
         cmd.indexCount += 6;
     }
 
-    void grDrawList::drawRect(grRect rect, grRect texCoord, grColor color) {
+    void grDrawList::drawRect(grTextureId textureId, grRect rect, grRect texCoord, grColor color) {
         Offset const vertex = static_cast<Offset>(vertices.size());
         Offset const index = static_cast<Offset>(indices.size());
 
-        Command& cmd = commands.empty() ? commands.push_back({index, 0}) : commands.back();
+        Command& cmd = pushCommand(commands, textureId);
 
         vertices.push_back({rect.minimum, texCoord.minimum, color});
         vertices.push_back(
@@ -51,7 +70,12 @@ inline namespace goober {
         cmd.indexCount += 6;
     }
 
-    void grDrawList::drawText(grFont const* font, grVec2 pos, grColor color, grStringView text) {
+    void grDrawList::drawText(
+        grFont const* font,
+        grTextureId textureId,
+        grVec2 pos,
+        grColor color,
+        grStringView text) {
         if (font == nullptr)
             return;
 
@@ -68,6 +92,7 @@ inline namespace goober {
             Command& cmd = commands.empty() ? commands.push_back({index, 0}) : commands.back();
 
             drawRect(
+                textureId,
                 {pos + glyph->extent.minimum, pos + glyph->extent.maximum},
                 glyph->texCoord,
                 color);

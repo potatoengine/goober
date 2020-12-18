@@ -22,34 +22,19 @@ extern std::size_t goober_proggy_size;
 
 namespace goober {
 
-    static void grRenderFont(grFont& font) {
-        stbtt_fontinfo fontInfo;
-        stbtt_InitFont(
-            &fontInfo,
-            goober_proggy_data,
-            stbtt_GetFontOffsetForIndex(goober_proggy_data, 0));
-
-        grFree(font.pixels.data);
-        font.pixels.data = nullptr;
+    static void grRebuildFontsAndAtlas(grFontAtlas& atlas, grArray<grFont*> const& fonts) {
+        grFree(atlas.data);
+        atlas.data = nullptr;
 
         grArray<stbtt_packedchar> packed;
-        packed.resize(255);
 
-        font.pixels.width = 512;
-        font.pixels.height = 512;
-        font.pixels.data =
-            static_cast<unsigned char*>(grAlloc(font.pixels.width * font.pixels.height));
-        font.pixels.bpp = 8;
+        atlas.width = 512;
+        atlas.height = 512;
+        atlas.data = static_cast<unsigned char*>(grAlloc(atlas.width * atlas.height));
+        atlas.bpp = 8;
 
         stbtt_pack_context packing;
-        stbtt_PackBegin(
-            &packing,
-            font.pixels.data,
-            font.pixels.width,
-            font.pixels.height,
-            0,
-            1,
-            nullptr);
+        stbtt_PackBegin(&packing, atlas.data, atlas.width, atlas.height, 0, 1, nullptr);
 
         // ensure we have a default block of pixels that are a solid white
         stbrp_rect pix;
@@ -58,29 +43,41 @@ namespace goober {
         stbtt_PackFontRangesPackRects(&packing, &pix, 1);
         assert(pix.x == 0);
         assert(pix.y == 0);
-        font.pixels.data[0] = 0xFF;
+        atlas.data[0] = 0xFF;
 
-        stbtt_PackFontRange(
-            &packing,
-            goober_proggy_data,
-            0,
-            STBTT_POINT_SIZE(font.fontSize),
-            0,
-            255,
-            packed.data());
+        for (grFont* font : fonts) {
+            if (font == nullptr)
+                continue;
 
-        float const widthScalar = 1.f / font.pixels.width;
-        float const heightScalar = 1.f / font.pixels.height;
+            stbtt_fontinfo fontInfo;
+            stbtt_InitFont(
+                &fontInfo,
+                goober_proggy_data,
+                stbtt_GetFontOffsetForIndex(goober_proggy_data, 0));
 
-        font.glyphs.clear();
-        font.glyphs.reserve(packed.size());
-        for (int index = 0; index != 255; ++index) {
-            stbtt_packedchar const& pchar = packed[index];
-            grRect const extent{{pchar.xoff, pchar.yoff}, {pchar.xoff2, pchar.yoff2}};
-            grRect const uv{
-                {pchar.x0 * widthScalar, pchar.y0 * heightScalar},
-                {pchar.x1 * widthScalar, pchar.y1 * heightScalar}};
-            font.glyphs.push_back({index, pchar.xadvance, extent, uv});
+            packed.resize(255);
+            stbtt_PackFontRange(
+                &packing,
+                goober_proggy_data,
+                0,
+                STBTT_POINT_SIZE(font->fontSize),
+                0,
+                255,
+                packed.data());
+
+            float const widthScalar = 1.f / atlas.width;
+            float const heightScalar = 1.f / atlas.height;
+
+            font->glyphs.clear();
+            font->glyphs.reserve(packed.size());
+            for (int index = 0; index != 255; ++index) {
+                stbtt_packedchar const& pchar = packed[index];
+                grRect const extent{{pchar.xoff, pchar.yoff}, {pchar.xoff2, pchar.yoff2}};
+                grRect const uv{
+                    {pchar.x0 * widthScalar, pchar.y0 * heightScalar},
+                    {pchar.x1 * widthScalar, pchar.y1 * heightScalar}};
+                font->glyphs.push_back({index, pchar.xadvance, extent, uv});
+            }
         }
 
         stbtt_PackEnd(&packing);
@@ -92,6 +89,7 @@ namespace goober {
 
         grFont* font = context->fonts.push_back(new (grAlloc(sizeof(grFont))) grFont());
         grFontId const id = font->fontId = context->nextFontId++;
+        context->fontAtlas->dirty = true;
         return id;
     }
 
@@ -101,26 +99,15 @@ namespace goober {
 
         for (grFont*& font : context->fonts) {
             if (font->fontId == fontId) {
-                grFree(font->pixels.data);
                 font->~grFont();
                 grFree(font);
                 font = nullptr;
+                context->fontAtlas->dirty = true;
                 return grStatus::Ok;
             }
         }
 
         return grStatus::InvalidId;
-    }
-
-    grStatus grDestroyFont(grFont* font) {
-        if (font == nullptr)
-            return grStatus::NullArgument;
-
-        grFree(font->pixels.data);
-
-        font->~grFont();
-        grFree(font);
-        return grStatus::Ok;
     }
 
     static grFont* grGetFontMutable(grContext* context, grFontId fontId) {
@@ -175,36 +162,27 @@ namespace goober {
         return size;
     }
 
-    bool grFontIsDirty(grContext* context, grFontId fontId) {
-        grFont const* font = grGetFont(context, fontId);
-        return font != nullptr ? font->dirty : false;
-    }
-
-    grFontTex const* grFontGetAlpha8(grContext* context, grFontId fontId) {
-        grFont* font = grGetFontMutable(context, fontId);
-        if (font == nullptr)
+    grFontAtlas const* grGetFontAtlasIfDirtyAlpha8(grContext* context) {
+        if (context == nullptr)
             return nullptr;
 
-        if (font->pixels.data == nullptr || font->dirty || font->pixels.bpp != 8) {
-            grFree(font->pixels.data);
-            grRenderFont(*font);
-        }
-
-        font->dirty = false;
-        return &font->pixels;
-    }
-
-    grFontTex const* grFontGetRGBA32(grContext* context, grFontId fontId) {
-        grFont* font = grGetFontMutable(context, fontId);
-        if (font == nullptr)
+        if (!context->fontAtlas->dirty)
             return nullptr;
 
-        if (font->pixels.data == nullptr || font->dirty || font->pixels.bpp != 32) {
-            grFree(font->pixels.data);
+        if (context->fontAtlas->data == nullptr || context->fontAtlas->bpp != 8) {
+            grFree(context->fontAtlas->data);
+            grRebuildFontsAndAtlas(*context->fontAtlas, context->fonts);
         }
 
-        font->dirty = false;
-        return &font->pixels;
+        return context->fontAtlas;
+    }
+
+    void grFontAtlasBindTexture(grContext* context, grTextureId textureId) {
+        if (context == nullptr)
+            return;
+
+        context->fontAtlas->texture = textureId;
+        context->fontAtlas->dirty = false;
     }
 
 } // namespace goober
