@@ -180,14 +180,45 @@ int main(int argc, char* argv[]) {
 
         grBeginFrame(ctx, 0.f);
 
-        grBeginPortal(ctx, "Test");
+        grBeginPortal(ctx, "Test", {{0, 0}, {400, 600}});
         grText(ctx, "hello world!", {40, 40}, grColors::white);
         if (grButton(ctx, "exit", {240, 240}, grColors::darkgrey))
             running = false;
-        grImage(ctx, 0, {{400, 300}, {500, 400}}, {{0, 1}, {1, 0}}, grColors::white);
+        grImage(ctx, 0, {{200, 300}, {300, 400}}, {{0, 1}, {1, 0}}, grColors::white);
 
         grEndPortal(ctx);
 
+        grBeginPortal(ctx, "Layout", {{400, 0}, {600, 600}});
+
+        grAddBlockElement(ctx, {20, 20}, grColors::red);
+        grBeginBlockElement(ctx, {40, 30}, grColors::blue);
+        {
+            grAddBlockElement(ctx, {30, 20}, grColors::green);
+            grAddInlineElement(ctx, {10, 10}, grColors::cyan);
+            grAddInlineElement(ctx, {10, 12}, grColors::magenta);
+            grAddInlineElement(ctx, {10, 10}, grColors::cyan);
+            grAddInlineElement(ctx, {10, 12}, grColors::magenta);
+            grAddInlineElement(ctx, {10, 10}, grColors::cyan);
+            grAddInlineElement(ctx, {5, 20}, grColors::yellow);
+            grAddInlineElement(ctx, {10, 12}, grColors::magenta);
+            grAddInlineElement(ctx, {10, 10}, grColors::cyan);
+            grAddInlineElement(ctx, {10, 12}, grColors::magenta);
+            grAddInlineElement(ctx, {10, 10}, grColors::cyan);
+            grAddInlineElement(ctx, {10, 12}, grColors::magenta);
+            grAddInlineElement(ctx, {10, 10}, grColors::cyan);
+            grAddInlineElement(ctx, {10, 12}, grColors::magenta);
+            grAddInlineElement(ctx, {5, 20}, grColors::yellow);
+            grAddInlineElement(ctx, {10, 10}, grColors::cyan);
+            grAddInlineElement(ctx, {10, 12}, grColors::magenta);
+            grAddInlineElement(ctx, {10, 10}, grColors::cyan);
+            grAddInlineElement(ctx, {10, 12}, grColors::magenta);
+        }
+        grEndElement(ctx);
+        grAddBlockElement(ctx, {60, 10}, grColors::black);
+
+        grEndPortal(ctx);
+
+        grRenderElements(ctx);
         grEndFrame(ctx);
 
         glViewport(0, 0, width, height);
@@ -206,6 +237,8 @@ int main(int argc, char* argv[]) {
 
         for (grPortal* port : ctx->portals) {
             grDrawList const& draw = *port->draw;
+            if (draw.commands.empty())
+                continue;
 
             glBindBuffer(GL_ARRAY_BUFFER, vbo);
             glBufferSubData(
@@ -222,7 +255,9 @@ int main(int argc, char* argv[]) {
                 draw.indices.data());
 
             for (grDrawList::Command const& cmd : draw.commands) {
-                glBindTexture(GL_TEXTURE_2D, cmd.textureId);
+                glBindTexture(
+                    GL_TEXTURE_2D,
+                    cmd.textureId == 0 ? ctx->fontAtlas->texture : cmd.textureId);
                 glBindSampler(0, fontSampler);
                 glDrawElements(
                     GL_TRIANGLES,

@@ -130,9 +130,17 @@ inline namespace goober {
             , g(gi)
             , b(bi)
             , a(ai) {}
+
+        bool operator==(grColor rhs) const noexcept {
+            return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
+        }
+        bool operator!=(grColor rhs) const noexcept {
+            return r != rhs.r || g != rhs.g || b != rhs.b || a != rhs.a;
+        }
     };
 
     namespace grColors {
+        static constexpr grColor transparent{0, 0, 0, 0};
         static constexpr grColor black{0, 0, 0, 255};
         static constexpr grColor white{255, 255, 255, 255};
         static constexpr grColor grey{176, 176, 176, 255};
@@ -326,6 +334,25 @@ inline namespace goober {
     };
 
     // ------------------------------------------------------
+    //  * grElement type *
+    // ------------------------------------------------------
+
+    enum class grElementKind {
+        Block,
+        Inline,
+    };
+
+    struct grElement {
+        grElementKind kind = grElementKind::Block;
+        grVec2 size{};
+        grRect layout{};
+        grColor bgColor = grColors::transparent;
+        int firstChild = -1;
+        int lastChild = -1;
+        int nextSibling = -1;
+    };
+
+    // ------------------------------------------------------
     //  * input mask types *
     // ------------------------------------------------------
 
@@ -397,7 +424,12 @@ inline namespace goober {
         grBoxed<grDrawList> draw;
         grString name;
         grId id = {};
+        grRect bounds{};
         grArray<grId> idStack;
+        grArray<grElement> elements;
+        grArray<int> elementStack;
+        int currentElement = -1;
+        int lastElement = -1;
     };
 
     // ------------------------------------------------------
@@ -453,7 +485,7 @@ inline namespace goober {
     GOOBER_API grResult<grContext*> grCreateContext();
     GOOBER_API grStatus grDestroyContext(grContext* context);
 
-    GOOBER_API grResult<grId> grBeginPortal(grContext* context, grStringView name);
+    GOOBER_API grResult<grId> grBeginPortal(grContext* context, grStringView name, grRect bounds);
     GOOBER_API grStatus grEndPortal(grContext* context);
     GOOBER_API grPortal* grCurrentPortal(grContext* context);
 
@@ -480,6 +512,12 @@ inline namespace goober {
     GOOBER_API bool grIsMouseOver(grContext const* context, grRect area) noexcept;
     GOOBER_API bool grIsMouseEntering(grContext const* context, grRect area) noexcept;
     GOOBER_API bool grIsMouseLeaving(grContext const* context, grRect area) noexcept;
+
+    GOOBER_API void grAddInlineElement(grContext* context, grVec2 size, grColor bgColor);
+    GOOBER_API void grAddBlockElement(grContext* context, grVec2 size, grColor bgColor);
+    GOOBER_API bool grBeginBlockElement(grContext* context, grVec2 size, grColor bgColor);
+    GOOBER_API void grEndElement(grContext* context) noexcept;
+    GOOBER_API grStatus grRenderElements(grContext* context);
 
     // ------------------------------------------------------
     //  * grBoxed implementation *

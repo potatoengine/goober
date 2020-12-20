@@ -31,7 +31,18 @@ inline namespace goober {
         return grStatus::Ok;
     }
 
-    grResult<grId> grBeginPortal(grContext* context, grStringView name) {
+    static void grResetPortal(grPortal* portal) {
+        portal->idStack.clear();
+        portal->elements.clear();
+        portal->elementStack.clear();
+        portal->lastElement = -1;
+        portal->draw->reset();
+
+        portal->elements.push_back({});
+        portal->currentElement = 0;
+    }
+
+    grResult<grId> grBeginPortal(grContext* context, grStringView name, grRect bounds) {
         if (context == nullptr)
             return grStatus::NullArgument;
 
@@ -51,7 +62,10 @@ inline namespace goober {
             port->name = grString(name);
             port->id = id;
             port->draw.reset(new (grAlloc(sizeof(grDrawList))) grDrawList());
+            grResetPortal(port);
         }
+
+        port->bounds = bounds;
 
         context->portalStack.push_back(port);
         context->currentPortal = port;
@@ -91,10 +105,8 @@ inline namespace goober {
         if (context == nullptr)
             return grStatus::NullArgument;
 
-        for (grPortal* port : context->portals) {
-            port->idStack.clear();
-            port->draw->reset();
-        }
+        for (grPortal* port : context->portals)
+            grResetPortal(port);
 
         context->activeId = context->activeIdNext;
         context->activeIdNext = {};
@@ -200,6 +212,138 @@ inline namespace goober {
 
         return !grIsContained(area, context->mousePos) &&
             grIsContained(area, context->mousePosLast);
+    }
+
+    static int grAddElement(grPortal* portal, grElementKind kind, grVec2 size, grColor bgColor) {
+        int const elementIndex = static_cast<int>(portal->elements.size());
+        grElement& element = portal->elements.push_back({});
+        element.kind = kind;
+        element.size = size;
+        element.bgColor = bgColor;
+
+        if (portal->currentElement != -1) {
+            grElement& current = portal->elements[portal->currentElement];
+            if (current.firstChild == -1) {
+                current.firstChild = current.lastChild = elementIndex;
+            }
+            else {
+                grElement& prevSibling = portal->elements[current.lastChild];
+                prevSibling.nextSibling = elementIndex;
+            }
+        }
+        else if (portal->lastElement != -1) {
+            grElement& prevSibling = portal->elements[portal->lastElement];
+            prevSibling.nextSibling = elementIndex;
+        }
+
+        portal->lastElement = elementIndex;
+
+        return elementIndex;
+    }
+
+    void grAddInlineElement(grContext* context, grVec2 size, grColor bgColor) {
+        if (context == nullptr)
+            return;
+
+        grPortal* portal = context->currentPortal;
+        if (portal == nullptr)
+            return;
+
+        grAddElement(portal, grElementKind::Inline, size, bgColor);
+    }
+
+    void grAddBlockElement(grContext* context, grVec2 size, grColor bgColor) {
+        if (context == nullptr)
+            return;
+
+        grPortal* portal = context->currentPortal;
+        if (portal == nullptr)
+            return;
+
+        grAddElement(portal, grElementKind::Block, size, bgColor);
+    }
+
+    bool grBeginBlockElement(grContext* context, grVec2 size, grColor bgColor) {
+        if (context == nullptr)
+            return false;
+
+        grPortal* portal = context->currentPortal;
+        if (portal == nullptr)
+            return false;
+
+        int const elementIndex = grAddElement(portal, grElementKind::Block, size, bgColor);
+
+        portal->elementStack.push_back(portal->currentElement);
+        portal->currentElement = elementIndex;
+        return true;
+    }
+
+    void grEndElement(grContext* context) noexcept {
+        if (context == nullptr)
+            return;
+
+        grPortal* portal = context->currentPortal;
+        if (portal == nullptr)
+            return;
+
+        if (portal->elementStack.empty()) {
+            portal->currentElement = -1;
+        }
+        else {
+            portal->currentElement = portal->elementStack.back();
+            portal->elementStack.pop_back();
+        }
+    }
+
+    static void grLayoutPortalElements(grPortal* portal) {
+        grRect const bounds = portal->bounds;
+        grVec2 cursor = bounds.minimum;
+        float runMaxHeight = 0;
+
+        for (grElement& elem : portal->elements) {
+            grVec2 pos = cursor;
+
+            if (elem.kind == grElementKind::Inline) {
+                if (elem.size.y > runMaxHeight)
+                    runMaxHeight = elem.size.y;
+                cursor.x += elem.size.x;
+                if (cursor.x >= bounds.maximum.x && elem.size.x < bounds.size().x) {
+                    cursor.x = bounds.minimum.x;
+                    cursor.y += runMaxHeight;
+                    runMaxHeight = 0;
+                }
+            }
+            else {
+                cursor.x = pos.x = bounds.minimum.x;
+                pos.y += runMaxHeight;
+                cursor.y = pos.y + elem.size.y;
+                runMaxHeight = 0;
+            }
+
+            elem.layout.minimum = pos;
+            elem.layout.maximum = pos + elem.size;
+        }
+    }
+
+    static void grRenderPortalElements(grPortal* portal) {
+        grDrawList* draw = portal->draw.get();
+
+        for (grElement const& elem : portal->elements) {
+            if (elem.bgColor != grColors::transparent)
+                draw->drawRect(elem.layout, elem.bgColor);
+        }
+    }
+
+    grStatus grRenderElements(grContext* context) {
+        if (context == nullptr)
+            return grStatus::NullArgument;
+
+        for (grPortal* portal : context->portals) {
+            grLayoutPortalElements(portal);
+            grRenderPortalElements(portal);
+        }
+
+        return grStatus::Ok;
     }
 
 } // namespace goober
